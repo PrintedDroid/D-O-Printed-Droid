@@ -408,11 +408,12 @@ void setup() {
   #endif
 
   // Initialize iBus on Serial1 (RX1 pin 19)
-  // NOTE: Using 9600 baud to match v1.1 which works with the receiver
+  // NOTE: Standard iBus baudrate is 115200
+  // (v1.1 used 9600 which is non-standard but reportedly worked)
   #ifdef IBUS_AVAILABLE
-    Serial1.begin(9600);  // Changed from 115200 - must match receiver config!
+    Serial1.begin(115200);  // Standard iBus baudrate
     IBus.begin(Serial1, IBUSBM_NOTIMER);
-    Serial.println(F("iBus initialized on Serial1 @ 9600 baud"));
+    Serial.println(F("iBus initialized on Serial1 @ 115200 baud"));
   #endif
 
   #ifdef DFPLAYER_ENABLED
