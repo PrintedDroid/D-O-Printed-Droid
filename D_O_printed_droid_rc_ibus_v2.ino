@@ -82,6 +82,7 @@
 // ============================================================================
 // FEATURE FLAGS - These can be changed via config menu
 // ============================================================================
+#define IBUS_ENABLED          // Enable iBus communication (CRITICAL - was missing!)
 #define MAINBAR_CORRECTION    // Auto-correct mainbar based on tilt
 #define DFPLAYER_ENABLED      // Enable sound system
 #define SERVOS_ENABLED        // Enable servo control
@@ -406,10 +407,12 @@ void setup() {
     initializeServos();
   #endif
 
-  #ifdef IBUS_ENABLED
-    Serial1.begin(115200);
+  // Initialize iBus on Serial1 (RX1 pin 19)
+  // NOTE: Using 9600 baud to match v1.1 which works with the receiver
+  #ifdef IBUS_AVAILABLE
+    Serial1.begin(9600);  // Changed from 115200 - must match receiver config!
     IBus.begin(Serial1, IBUSBM_NOTIMER);
-    Serial.println(F("iBus initialized"));
+    Serial.println(F("iBus initialized on Serial1 @ 9600 baud"));
   #endif
 
   #ifdef DFPLAYER_ENABLED
