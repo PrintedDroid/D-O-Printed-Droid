@@ -1,6 +1,6 @@
 /********************************************************************************
  * PROJECT: D-O Self-Balancing Droid - Universal Controller
- * VERSION: 3.3.2 (Fixed watchdog timing, added 45° tilt safety cutoff)
+ * VERSION: 3.3.3 (Added motor test menu, 45° tilt safety cutoff, fixed watchdog)
  * DATE:    December 2025
  *
  * DESCRIPTION:
@@ -352,7 +352,7 @@ unsigned long last_freq_print = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Universal Controller v3.3.2 ==="));
+  Serial.println(F("\n=== D-O Universal Controller v3.3.3 ==="));
 
   // Load configuration
   loadConfiguration();
@@ -1752,5 +1752,5 @@ void saveConfiguration() {
 }
 
 // ============================================================================
-// End of D-O Universal Controller v3.3.0
+// End of D-O Universal Controller v3.3.3
 // ============================================================================
