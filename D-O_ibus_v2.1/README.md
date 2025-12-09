@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - iBus Controller v2.1
 
-![Version](https://img.shields.io/badge/version-2.1-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.1-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
@@ -24,6 +24,29 @@ This Arduino sketch provides full control over a self-balancing D-O droid (from 
 ---
 
 ## 📝 Changelog
+
+### Version 2.1.1 (December 2025)
+
+**Robust IMU Clone Support**
+
+#### 🔧 IMU Improvements
+
+- **Dynamic I2C Address Detection**: Automatically finds IMU at 0x68 or 0x69
+- **WHO_AM_I Register Check**: Identifies chip type for better compatibility
+- **Clone Support**: Works with MPU6050, MPU6500, MPU9250, MPU6886
+- **Improved Error Handling**: Validates I2C byte reads, skips bad data
+- **Better Diagnostics**: Reports detected IMU type at startup
+
+#### ✅ Supported IMU Chips
+
+| WHO_AM_I | Chip Type | Status |
+|----------|-----------|--------|
+| 0x68 | MPU6050 | ✅ Original |
+| 0x70 | MPU6500 | ✅ Clone |
+| 0x71 | MPU9250 | ✅ Clone |
+| 0x19 | MPU6886 | ✅ Clone |
+
+---
 
 ### Version 2.1 (December 2025)
 
@@ -80,6 +103,7 @@ This Arduino sketch provides full control over a self-balancing D-O droid (from 
 
 ### Core Capabilities
 - ✅ **MPU6050 IMU Self-Balancing** with advanced PID control
+- ✅ **Robust IMU Clone Support** (MPU6050/6500/9250/6886)
 - ✅ **Three Setup Modes**: PWM Only, Hybrid, or Pure iBus
 - ✅ **Configurable iBus Baudrate** (9600 or 115200)
 - ✅ **Integrated DFPlayer Sound System** with personality features
