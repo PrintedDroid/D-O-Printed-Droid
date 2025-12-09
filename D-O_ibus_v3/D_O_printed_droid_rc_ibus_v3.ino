@@ -1,6 +1,6 @@
 /********************************************************************************
  * PROJECT: D-O Self-Balancing Droid - Universal Controller
- * VERSION: 3.2.4 (Robust IMU Clone Support)
+ * VERSION: 3.3.0 (Added Idle Animations, Adaptive PID, Dynamic Lean)
  * DATE:    December 2025
  *
  * DESCRIPTION:
@@ -100,6 +100,7 @@ struct Configuration {
 
   // Setup Mode: 0=PWM Only, 1=iBus
   uint8_t setup_mode = 1;
+  uint32_t ibus_baudrate = 115200;  // iBus baudrate (9600 or 115200)
 
   // PID Configuration
   float kp = 25.0;
@@ -111,9 +112,12 @@ struct Configuration {
   // Feature Toggles
   bool mainbar_correction = true;
   bool ramping_enabled = true;
-  bool adaptive_pid = false;
+  bool adaptive_pid_enabled = true;
+  bool dynamic_angle_enabled = true;
+  bool idle_actions_enabled = true;
+  bool state_reactions_enabled = true;
   bool battery_monitor = true;
-  bool battery_recovery = false;  // Enable battery recovery with hysteresis (not default)
+  bool battery_recovery = false;
   bool servos_enabled = true;
   bool watchdog_enabled = true;
 
@@ -125,10 +129,23 @@ struct Configuration {
   // Sound (all modes)
   uint8_t sound_volume = 25;
   uint16_t min_sound_interval = 500;
+  uint16_t idle_interval_min = 5000;
+  uint16_t idle_interval_max = 15000;
 
   // Driving Dynamics
   float ramp_rate = 0.15;
+  float max_acceleration = 20.0;
+  float max_lean_angle = 3.0;
   uint8_t deadband = 30;
+  float expo_factor = 0.5;
+
+  // Adaptive PID Parameters
+  float kp_slow = 25.0;
+  float kp_medium = 20.0;
+  float kp_fast = 15.0;
+  float kd_slow = 0.8;
+  float kd_medium = 0.6;
+  float kd_fast = 0.4;
 
   // IMU Calibration
   int16_t accel_x_offset = 0;
@@ -189,9 +206,13 @@ const uint8_t SOUND_POS_START = 10;
 const uint8_t SOUND_POS_END = 14;
 const uint8_t SOUND_SQUEAK_START = 15;
 const uint8_t SOUND_SQUEAK_END = 20;
+const uint8_t SOUND_TILT_WARNING = 21;
+const uint8_t SOUND_RECOVERY = 22;
 const uint8_t SOUND_LOW_BATTERY = 23;
-const uint8_t SOUND_SYSTEM_READY = 24;
-const uint8_t SOUND_SIGNAL_LOST = 25;
+const uint8_t SOUND_IDLE_START = 24;
+const uint8_t SOUND_IDLE_END = 30;
+const uint8_t SOUND_SYSTEM_READY = 31;
+const uint8_t SOUND_SIGNAL_LOST = 32;
 
 // iBus Channels (Mode 1)
 const uint8_t CH_DRIVE1 = 0;
@@ -260,6 +281,11 @@ float pid_i = 0;
 float pid_d = 0;
 float pid_output = 0;
 
+// Current PID values (may change with adaptive PID)
+float current_kp;
+float current_ki;
+float current_kd;
+
 // Motors
 float motor_target_1 = 0;
 float motor_target_2 = 0;
@@ -297,6 +323,16 @@ struct SoundState {
   unsigned long last_sound_time = 0;
 } soundState;
 
+// Idle Action System
+unsigned long last_idle_action = 0;
+unsigned long next_idle_interval = 10000;
+unsigned long last_rc_activity = 0;
+bool is_idle = false;
+
+// State Monitoring
+bool tilt_warning_active = false;
+unsigned long last_tilt_warning = 0;
+
 // System
 bool system_ready = false;
 
@@ -310,10 +346,15 @@ unsigned long last_freq_print = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Universal Controller v3.2.3 ==="));
+  Serial.println(F("\n=== D-O Universal Controller v3.3.0 ==="));
 
   // Load configuration
   loadConfiguration();
+
+  // Initialize current PID values
+  current_kp = config.kp;
+  current_ki = config.ki;
+  current_kd = config.kd;
 
   // Enable Watchdog Timer (2 second timeout)
   if (config.watchdog_enabled) {
@@ -368,6 +409,9 @@ void setup() {
   current_time = micros();
   previous_time = current_time;
   last_valid_signal = millis();
+  last_rc_activity = millis();
+  last_idle_action = millis();
+  next_idle_interval = random(config.idle_interval_min, config.idle_interval_max);
 
   system_ready = true;
   Serial.println(F("System ready!"));
@@ -429,14 +473,33 @@ void loop() {
     checkBattery();
   }
 
+  // Check for idle state
+  checkIdleState();
+
   // Main control (if not in emergency stop)
   if (!emergency_stop) {
     updateIMUReadings();
+
+    // Update adaptive PID if enabled
+    if (config.adaptive_pid_enabled) {
+      updateAdaptivePID();
+    }
+
     calculatePID();
     updateMotors();
+
+    // Check for state-based reactions
+    if (config.state_reactions_enabled) {
+      checkStateReactions();
+    }
   } else {
     analogWrite(PWM1_PIN, 0);
     analogWrite(PWM2_PIN, 0);
+  }
+
+  // Handle idle actions
+  if (config.idle_actions_enabled && is_idle) {
+    handleIdleActions();
   }
 
   // Update servos
@@ -491,8 +554,11 @@ void initializeForMode() {
 
     case 1:  // iBus
       Serial.println(F("Initializing iBus..."));
-      Serial1.begin(115200);
+      Serial1.begin(config.ibus_baudrate);
       IBus.begin(Serial1, IBUSBM_NOTIMER);
+      Serial.print(F("iBus @ "));
+      Serial.print(config.ibus_baudrate);
+      Serial.println(F(" baud"));
       initializeDFPlayer();
       sound_enabled = true;
       break;
@@ -500,7 +566,7 @@ void initializeForMode() {
     default:
       Serial.println(F("Unknown mode - defaulting to iBus"));
       config.setup_mode = 1;
-      Serial1.begin(115200);
+      Serial1.begin(config.ibus_baudrate);
       IBus.begin(Serial1, IBUSBM_NOTIMER);
       initializeDFPlayer();
       sound_enabled = true;
@@ -530,6 +596,10 @@ void readRCInputs() {
         rc_drive_1 = temp1;
         rc_drive_2 = temp2;
         last_valid_signal = millis();
+        // Track RC activity for idle detection
+        if (abs(temp1 - RC_CENTER) > 50 || abs(temp2 - RC_CENTER) > 50) {
+          last_rc_activity = millis();
+        }
         if (emergency_stop) {
           emergency_stop = false;
           Serial.println(F("Signal restored"));
@@ -547,6 +617,10 @@ void readRCInputs() {
         rc_drive_1 = temp1;
         rc_drive_2 = temp2;
         last_valid_signal = millis();
+        // Track RC activity for idle detection
+        if (abs(temp1 - RC_CENTER) > 50 || abs(temp2 - RC_CENTER) > 50) {
+          last_rc_activity = millis();
+        }
         if (emergency_stop) {
           emergency_stop = false;
           Serial.println(F("Signal restored"));
@@ -838,17 +912,47 @@ void runIMUCalibration() {
 // ============================================================================
 
 void calculatePID() {
-  pid_error = total_angle[0] - config.target_angle;
+  // Calculate target angle
+  float target = config.target_angle;
 
-  pid_p = config.kp * pid_error;
-  pid_i = pid_i + (config.ki * pid_error * elapsed_time);
+  if (config.dynamic_angle_enabled) {
+    // Add forward lean based on drive input
+    float drive_input = ((rc_drive_1 + rc_drive_2) / 2.0 - RC_CENTER) / 500.0;
+    target += (drive_input * config.max_lean_angle);
+  }
+
+  // Calculate error
+  pid_error = total_angle[0] - target;
+
+  // PID calculations using current (adaptive) values
+  pid_p = current_kp * pid_error;
+  pid_i = pid_i + (current_ki * pid_error * elapsed_time);
   pid_i = constrain(pid_i, -config.max_integral, config.max_integral);
-  pid_d = config.kd * ((pid_error - pid_previous_error) / elapsed_time);
+  pid_d = current_kd * ((pid_error - pid_previous_error) / elapsed_time);
 
   pid_output = pid_p + pid_i + pid_d;
   pid_output = constrain(pid_output, -1000, 1000);
 
   pid_previous_error = pid_error;
+}
+
+// ============================================================================
+// ADAPTIVE PID
+// ============================================================================
+
+void updateAdaptivePID() {
+  int avg_speed = abs(motor_speed_1 + motor_speed_2) / 2;
+
+  if (avg_speed < 50) {
+    current_kp = config.kp_slow;
+    current_kd = config.kd_slow;
+  } else if (avg_speed < 150) {
+    current_kp = config.kp_medium;
+    current_kd = config.kd_medium;
+  } else {
+    current_kp = config.kp_fast;
+    current_kd = config.kd_fast;
+  }
 }
 
 // ============================================================================
@@ -999,6 +1103,102 @@ void checkBattery() {
 }
 
 // ============================================================================
+// IDLE ACTION SYSTEM
+// ============================================================================
+
+void checkIdleState() {
+  is_idle = (millis() - last_rc_activity > 3000); // 3 seconds of no activity
+}
+
+void handleIdleActions() {
+  if (millis() - last_idle_action > next_idle_interval) {
+    performRandomIdleAction();
+    last_idle_action = millis();
+    next_idle_interval = random(config.idle_interval_min, config.idle_interval_max);
+  }
+}
+
+void performRandomIdleAction() {
+  if (emergency_stop) return;
+
+  int action = random(0, 10);
+
+  if (action < 7) {
+    // 70% chance of sound
+    if (sound_enabled) {
+      uint8_t track = random(SOUND_IDLE_START, SOUND_IDLE_END + 1);
+      playSound(track);
+    }
+  } else {
+    // 30% chance of head movement
+    if (config.servos_enabled) {
+      performIdleServoMovement();
+    }
+  }
+}
+
+void performIdleServoMovement() {
+  // Random head movement
+  int movement_type = random(0, 3);
+
+  switch (movement_type) {
+    case 0: // Nod
+      for (int i = 0; i < 2; i++) {
+        head1Servo.writeMicroseconds(1300);
+        delay(300);
+        head1Servo.writeMicroseconds(1700);
+        delay(300);
+      }
+      head1Servo.writeMicroseconds(RC_CENTER);
+      break;
+
+    case 1: // Look around
+      head2Servo.writeMicroseconds(1200);
+      delay(500);
+      head2Servo.writeMicroseconds(1800);
+      delay(500);
+      head2Servo.writeMicroseconds(RC_CENTER);
+      break;
+
+    case 2: // Small shake
+      for (int i = 0; i < 3; i++) {
+        head3Servo.writeMicroseconds(1400);
+        delay(150);
+        head3Servo.writeMicroseconds(1600);
+        delay(150);
+      }
+      head3Servo.writeMicroseconds(RC_CENTER);
+      break;
+  }
+}
+
+// ============================================================================
+// STATE-BASED REACTIONS
+// ============================================================================
+
+void checkStateReactions() {
+  // Tilt warning
+  float tilt = abs(total_angle[0] - config.target_angle);
+
+  if (tilt > 15.0 && !tilt_warning_active) {
+    if (millis() - last_tilt_warning > 5000) { // Prevent spam
+      tilt_warning_active = true;
+      last_tilt_warning = millis();
+
+      if (sound_enabled) {
+        playSound(SOUND_TILT_WARNING);
+      }
+    }
+  } else if (tilt < 5.0 && tilt_warning_active) {
+    tilt_warning_active = false;
+
+    if (sound_enabled) {
+      playSound(SOUND_RECOVERY);
+    }
+  }
+}
+
+// ============================================================================
 // SOUND SYSTEM (All modes)
 // ============================================================================
 
@@ -1120,12 +1320,14 @@ void configurationMenu() {
   while (true) {
     Serial.println(F("\n1. Setup Mode (PWM/iBus)"));
     Serial.println(F("2. PID Configuration"));
-    Serial.println(F("3. Battery Settings"));
-    Serial.println(F("4. Sound Settings"));
-    Serial.println(F("5. Feature Toggles"));
-    Serial.println(F("6. IMU Calibration"));
-    Serial.println(F("7. Show Current Status"));
-    Serial.println(F("8. Save and Exit"));
+    Serial.println(F("3. Adaptive PID Settings"));
+    Serial.println(F("4. Driving Dynamics"));
+    Serial.println(F("5. Battery Settings"));
+    Serial.println(F("6. Sound Settings"));
+    Serial.println(F("7. Feature Toggles"));
+    Serial.println(F("8. IMU Calibration"));
+    Serial.println(F("9. Show Current Status"));
+    Serial.println(F("s. Save and Exit"));
     Serial.println(F("0. Exit without Saving"));
     Serial.print(F("Select: "));
 
@@ -1138,12 +1340,15 @@ void configurationMenu() {
     switch (option) {
       case '1': configureSetupMode(); break;
       case '2': configurePID(); break;
-      case '3': configureBattery(); break;
-      case '4': configureSound(); break;
-      case '5': configureFeatures(); break;
-      case '6': runIMUCalibration(); break;
-      case '7': showStatus(); break;
-      case '8':
+      case '3': configureAdaptivePID(); break;
+      case '4': configureDynamics(); break;
+      case '5': configureBattery(); break;
+      case '6': configureSound(); break;
+      case '7': configureFeatures(); break;
+      case '8': runIMUCalibration(); break;
+      case '9': showStatus(); break;
+      case 's':
+      case 'S':
         saveConfiguration();
         Serial.println(F("Saved! RESTART required if mode changed."));
         return;
@@ -1159,21 +1364,54 @@ void configureSetupMode() {
   Serial.println(F("\n--- Setup Mode ---"));
   Serial.println(F("0 = PWM Only (Standard PWM receiver)"));
   Serial.println(F("1 = iBus (Recommended - FlySky receivers)"));
-  Serial.print(F("Current: "));
+  Serial.print(F("Current mode: "));
   Serial.println(config.setup_mode);
-  Serial.print(F("New mode [0-1]: "));
+  Serial.print(F("Current iBus baudrate: "));
+  Serial.println(config.ibus_baudrate);
+
+  Serial.println(F("\nOptions:"));
+  Serial.println(F("0-1 = Change mode"));
+  Serial.println(F("b   = Change iBus baudrate"));
+  Serial.print(F("Choice: "));
 
   while (!Serial.available()) delay(10);
   char choice = Serial.read();
   while (Serial.available()) Serial.read();
+  Serial.println(choice);
 
   if (choice >= '0' && choice <= '1') {
     config.setup_mode = choice - '0';
     Serial.print(F("Changed to mode "));
     Serial.println(config.setup_mode);
     Serial.println(F("RESTART REQUIRED!"));
+  } else if (choice == 'b' || choice == 'B') {
+    configureIbusBaudrate();
   } else {
-    Serial.println(F("Invalid choice - must be 0 or 1"));
+    Serial.println(F("Invalid choice"));
+  }
+}
+
+void configureIbusBaudrate() {
+  Serial.println(F("\n--- iBus Baudrate ---"));
+  Serial.print(F("Current: "));
+  Serial.println(config.ibus_baudrate);
+  Serial.println(F("1 = 9600 (non-standard)"));
+  Serial.println(F("2 = 115200 (standard)"));
+  Serial.print(F("Choice [1-2]: "));
+
+  while (!Serial.available()) delay(10);
+  char choice = Serial.read();
+  while (Serial.available()) Serial.read();
+  Serial.println(choice);
+
+  if (choice == '1') {
+    config.ibus_baudrate = 9600;
+    Serial.println(F("Set to 9600 - RESTART REQUIRED!"));
+  } else if (choice == '2') {
+    config.ibus_baudrate = 115200;
+    Serial.println(F("Set to 115200 - RESTART REQUIRED!"));
+  } else {
+    Serial.println(F("Invalid - unchanged"));
   }
 }
 
@@ -1183,6 +1421,37 @@ void configurePID() {
   config.ki = getFloatInput(F("KI"), config.ki, 0, 10);
   config.kd = getFloatInput(F("KD"), config.kd, 0, 10);
   config.target_angle = getFloatInput(F("Target Angle"), config.target_angle, -10, 10);
+  config.max_integral = getFloatInput(F("Max Integral"), config.max_integral, 0, 1000);
+
+  // Update current values
+  current_kp = config.kp;
+  current_ki = config.ki;
+  current_kd = config.kd;
+}
+
+void configureAdaptivePID() {
+  Serial.println(F("\n--- Adaptive PID Settings ---"));
+
+  Serial.println(F("Slow Speed (<50):"));
+  config.kp_slow = getFloatInput(F("  KP"), config.kp_slow, 0, 100);
+  config.kd_slow = getFloatInput(F("  KD"), config.kd_slow, 0, 10);
+
+  Serial.println(F("Medium Speed (50-150):"));
+  config.kp_medium = getFloatInput(F("  KP"), config.kp_medium, 0, 100);
+  config.kd_medium = getFloatInput(F("  KD"), config.kd_medium, 0, 10);
+
+  Serial.println(F("Fast Speed (>150):"));
+  config.kp_fast = getFloatInput(F("  KP"), config.kp_fast, 0, 100);
+  config.kd_fast = getFloatInput(F("  KD"), config.kd_fast, 0, 10);
+}
+
+void configureDynamics() {
+  Serial.println(F("\n--- Driving Dynamics ---"));
+  config.ramp_rate = getFloatInput(F("Ramp Rate (0.01-1.0)"), config.ramp_rate, 0.01, 1.0);
+  config.max_acceleration = getFloatInput(F("Max Acceleration"), config.max_acceleration, 1, 100);
+  config.max_lean_angle = getFloatInput(F("Max Lean Angle"), config.max_lean_angle, 0, 10);
+  config.deadband = getIntInput(F("RC Deadband"), config.deadband, 0, 100);
+  config.expo_factor = getFloatInput(F("Expo Factor (0-1)"), config.expo_factor, 0, 1);
 }
 
 void configureBattery() {
@@ -1199,15 +1468,21 @@ void configureBattery() {
 void configureSound() {
   Serial.println(F("\n--- Sound Settings ---"));
   config.sound_volume = getIntInput(F("Volume (0-30)"), config.sound_volume, 0, 30);
-  config.min_sound_interval = getIntInput(F("Min Interval (ms)"), config.min_sound_interval, 100, 5000);
+  config.min_sound_interval = getIntInput(F("Min Sound Interval (ms)"), config.min_sound_interval, 100, 5000);
+  config.idle_interval_min = getIntInput(F("Min Idle Interval (ms)"), config.idle_interval_min, 1000, 30000);
+  config.idle_interval_max = getIntInput(F("Max Idle Interval (ms)"), config.idle_interval_max, config.idle_interval_min, 60000);
 }
 
 void configureFeatures() {
   Serial.println(F("\n--- Feature Toggles ---"));
   config.mainbar_correction = getBoolInput(F("Mainbar Auto-Correct"), config.mainbar_correction);
   config.ramping_enabled = getBoolInput(F("Motor Ramping"), config.ramping_enabled);
+  config.adaptive_pid_enabled = getBoolInput(F("Adaptive PID"), config.adaptive_pid_enabled);
+  config.dynamic_angle_enabled = getBoolInput(F("Dynamic Lean Angle"), config.dynamic_angle_enabled);
+  config.idle_actions_enabled = getBoolInput(F("Idle Actions"), config.idle_actions_enabled);
+  config.state_reactions_enabled = getBoolInput(F("State Reactions"), config.state_reactions_enabled);
   config.battery_monitor = getBoolInput(F("Battery Monitor"), config.battery_monitor);
-  config.battery_recovery = getBoolInput(F("Battery Recovery (Hysteresis)"), config.battery_recovery);
+  config.battery_recovery = getBoolInput(F("Battery Recovery"), config.battery_recovery);
   config.servos_enabled = getBoolInput(F("Servo Control"), config.servos_enabled);
   config.watchdog_enabled = getBoolInput(F("Watchdog Timer"), config.watchdog_enabled);
 }
@@ -1294,5 +1569,5 @@ void saveConfiguration() {
 }
 
 // ============================================================================
-// End of D-O Universal Controller v3.2.3
+// End of D-O Universal Controller v3.3.0
 // ============================================================================
