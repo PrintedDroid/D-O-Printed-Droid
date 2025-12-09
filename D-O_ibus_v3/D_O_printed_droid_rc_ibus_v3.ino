@@ -1,6 +1,6 @@
 /********************************************************************************
  * PROJECT: D-O Self-Balancing Droid - Universal Controller
- * VERSION: 3.3.3 (Added motor test menu, 45° tilt safety cutoff, fixed watchdog)
+ * VERSION: 3.3.4 (Added IMU axis test, motor test menu, 45° tilt safety)
  * DATE:    December 2025
  *
  * DESCRIPTION:
@@ -352,7 +352,7 @@ unsigned long last_freq_print = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Universal Controller v3.3.3 ==="));
+  Serial.println(F("\n=== D-O Universal Controller v3.3.4 ==="));
 
   // Load configuration
   loadConfiguration();
@@ -1379,6 +1379,7 @@ void configurationMenu() {
     Serial.println(F("8. IMU Calibration"));
     Serial.println(F("9. Show Current Status"));
     Serial.println(F("m. Motor Test & Config"));
+    Serial.println(F("i. IMU Axis Test (live angles)"));
     Serial.println(F("s. Save and Exit"));
     Serial.println(F("0. Exit without Saving"));
     Serial.print(F("Select: "));
@@ -1401,6 +1402,8 @@ void configurationMenu() {
       case '9': showStatus(); break;
       case 'm':
       case 'M': motorTestMenu(); break;
+      case 'i':
+      case 'I': imuTestMenu(); break;
       case 's':
       case 'S':
         saveConfiguration();
@@ -1689,6 +1692,67 @@ void motorTestMenu() {
   }
 }
 
+void imuTestMenu() {
+  Serial.println(F("\n=== IMU AXIS TEST ==="));
+  Serial.println(F("This test shows live IMU angles to verify correct orientation."));
+  Serial.println(F("Angle[0] is used for balancing (front/back tilt)."));
+  Serial.println(F("\nInstructions:"));
+  Serial.println(F("1. Hold D-O upright - both angles should be near 0"));
+  Serial.println(F("2. Tilt D-O FORWARD (nose down) - Angle[0] should INCREASE"));
+  Serial.println(F("3. Tilt D-O BACKWARD (nose up) - Angle[0] should DECREASE"));
+  Serial.println(F("4. Tilt D-O LEFT/RIGHT - Angle[1] should change"));
+  Serial.println(F("\nIf Angle[0] doesn't respond to front/back tilt:"));
+  Serial.println(F("  -> IMU is mounted wrong (X/Y swapped or rotated 90 degrees)"));
+  Serial.println(F("\nPress any key to stop...\n"));
+
+  delay(500);
+  while (Serial.available()) Serial.read(); // Clear buffer
+
+  unsigned long last_print = 0;
+
+  while (!Serial.available()) {
+    // Update IMU readings
+    updateIMUReadings();
+
+    // Print every 200ms
+    if (millis() - last_print > 200) {
+      Serial.print(F("Angle[0] (Balance): "));
+      if (total_angle[0] >= 0) Serial.print(F(" "));
+      Serial.print(total_angle[0], 1);
+      Serial.print(F("°   Angle[1] (Side): "));
+      if (total_angle[1] >= 0) Serial.print(F(" "));
+      Serial.print(total_angle[1], 1);
+      Serial.print(F("°   Raw Accel: X="));
+      Serial.print(acc_x);
+      Serial.print(F(" Y="));
+      Serial.print(acc_y);
+      Serial.print(F(" Z="));
+      Serial.println(acc_z);
+
+      last_print = millis();
+    }
+  }
+
+  while (Serial.available()) Serial.read(); // Clear buffer
+  Serial.println(F("\nIMU test stopped."));
+
+  // Diagnostic summary
+  Serial.println(F("\nQuick Diagnostic:"));
+  Serial.print(F("  Current balance angle: "));
+  Serial.print(total_angle[0], 1);
+  Serial.println(F("°"));
+  Serial.print(F("  Target angle: "));
+  Serial.print(config.target_angle, 1);
+  Serial.println(F("°"));
+  Serial.print(F("  Difference: "));
+  Serial.print(total_angle[0] - config.target_angle, 1);
+  Serial.println(F("°"));
+
+  if (abs(total_angle[0]) > 45) {
+    Serial.println(F("\n  WARNING: Angle > 45° - D-O appears to be lying down!"));
+  }
+}
+
 // Helper functions
 float getFloatInput(const __FlashStringHelper* prompt, float current, float min, float max) {
   Serial.print(prompt);
@@ -1752,5 +1816,5 @@ void saveConfiguration() {
 }
 
 // ============================================================================
-// End of D-O Universal Controller v3.3.3
+// End of D-O Universal Controller v3.3.4
 // ============================================================================

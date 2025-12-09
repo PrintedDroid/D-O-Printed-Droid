@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - iBus Controller v2.1
 
-![Version](https://img.shields.io/badge/version-2.1.4-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.5-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -52,12 +52,17 @@ Built on the proven v1.1 foundation with significant feature additions for build
 
 ## 📝 Changelog
 
-### Version 2.1.4 (December 2025)
+### Version 2.1.5 (December 2025)
 
-**Motor Test & Configuration Menu + Safety Features**
+**IMU Axis Test + Motor Test & Safety Features**
 
 #### ✨ New Features
 
+- **IMU Axis Test** (`i` in CLI): Live angle display to verify IMU orientation
+  - Shows Angle[0] (balance) and Angle[1] (side) in real-time
+  - Displays raw accelerometer values (X, Y, Z)
+  - Instructions to verify correct front/back tilt response
+  - Helps diagnose X/Y axis swap or wrong IMU mounting
 - **Motor Test Menu** (`m` in CLI): Test individual motors and configure wiring
   - Test Motor 1 (Left) / Motor 2 (Right) individually
   - Test both motors forward/backward
@@ -409,6 +414,7 @@ Send `m` at any time to open the full configuration menu.
 7. IMU Calibration
 8. Setup Type (PWM/Hybrid/iBus + Baudrate)
 m. Motor Test & Config
+i. IMU Axis Test (live angles)
 9. Save and Exit
 0. Exit without Saving
 ```
@@ -488,7 +494,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Self-Balancing Controller v2.1.4 ===
+   === D-O Self-Balancing Controller v2.1.5 ===
    Configuration loaded from EEPROM
    iBus initialized @ 9600 baud
    Waiting for RC signal...
