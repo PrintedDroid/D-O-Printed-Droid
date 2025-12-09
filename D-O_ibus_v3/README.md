@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - Universal Controller
 
-![Version](https://img.shields.io/badge/version-3.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.3.1-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
@@ -24,6 +24,20 @@ This optimized Arduino sketch provides complete control over a self-balancing D-
 ---
 
 ## 📝 Changelog
+
+### Version 3.3.1 (December 2025)
+
+**RC Mixing Mode Selection**
+
+#### ✨ New Features
+
+- **Arcade Mixing Mode** (now default): One stick controls both throttle and steering
+- **Tank Mixing Mode**: Original behavior - each stick controls one motor
+- **CLI Configuration**: Select mixing mode via Serial Monitor menu (Option 4 → Driving Dynamics)
+
+This fixes the issue where forward/backward driving was much slower than turning with standard FlySky configuration.
+
+---
 
 ### Version 3.3.0 (December 2025)
 
@@ -438,6 +452,59 @@ Pin A15 → Battery Voltage Measurement
 | CH8 | Sound Mode | Greeting / Default |
 | CH9 | Sound Mood | Negative / Neutral / Positive (3-pos) |
 | CH10 | Sound Squeak | Squeak sounds |
+
+---
+
+## 🎮 RC Mixing Modes
+
+The sketch supports two RC mixing modes, configurable via the Serial menu:
+
+### Arcade Mode (Default, Recommended)
+
+**One stick controls everything:**
+- CH2 (Throttle) = Forward/Backward
+- CH1 (Steering) = Turn Left/Right
+
+```
+        Forward
+           ↑
+   Left ←  ●  → Right
+           ↓
+        Backward
+```
+
+**Advantages:**
+- Works with standard FlySky configuration (no transmitter mixing needed)
+- More intuitive - same as RC cars
+- One-handed control possible
+
+### Tank Mode (Original)
+
+**Two sticks, each controls one motor:**
+- CH1 = Left Motor
+- CH2 = Right Motor
+
+```
+Left Stick    Right Stick
+    ↑             ↑
+    ●             ●
+    ↓             ↓
+  Motor1        Motor2
+```
+
+**Advantages:**
+- More precise control at low speeds
+- Better for tight maneuvering
+
+### Changing Mixing Mode
+
+1. Open Serial Monitor (9600 baud)
+2. Send `m` → Configuration Menu
+3. Select `4` → Driving Dynamics
+4. At the end, select mixing mode:
+   - `0` = Tank Mode
+   - `1` = Arcade Mode (recommended)
+5. Select `s` → Save and Exit
 
 ---
 

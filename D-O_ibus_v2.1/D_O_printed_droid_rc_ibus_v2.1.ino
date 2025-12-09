@@ -2,7 +2,7 @@
  * PROJECT: D-O Self-Balancing Droid with iBus Control
  * ORIGINAL: Reinhard Stockinger 2020/11
  * ENHANCED: Optimized version from Printed-Droid.com
- * VERSION: 2.1.1 (Added robust IMU handling for clones)
+ * VERSION: 2.1.2 (Added RC Mixing Mode selection)
  * DATE:    December 2025
  * 
  * DESCRIPTION:
@@ -163,6 +163,7 @@ struct Configuration {
   float max_lean_angle = 3.0;
   uint8_t deadband = 30;
   float expo_factor = 0.5;
+  uint8_t mixing_mode = 1;        // 0=Tank (CH1=Motor1, CH2=Motor2), 1=Arcade (CH1=Steering, CH2=Throttle)
   
   // Adaptive PID Parameters
   float kp_slow = 25.0;
@@ -340,7 +341,7 @@ unsigned long startup_time = 0;
 void setup() {
   // Initialize serial
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1.1 ==="));
+  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1.2 ==="));
   
   // Load configuration from EEPROM
   loadConfiguration();
@@ -615,12 +616,35 @@ void configureSound() {
 
 void configureDynamics() {
   Serial.println(F("\n--- Driving Dynamics ---"));
-  
+
   config.ramp_rate = getFloatInput(F("Ramp Rate (0.01-1.0)"), config.ramp_rate, 0.01, 1.0);
   config.max_acceleration = getFloatInput(F("Max Acceleration"), config.max_acceleration, 1, 100);
   config.max_lean_angle = getFloatInput(F("Max Lean Angle"), config.max_lean_angle, 0, 10);
   config.deadband = getIntInput(F("RC Deadband"), config.deadband, 0, 100);
   config.expo_factor = getFloatInput(F("Expo Factor (0-1)"), config.expo_factor, 0, 1);
+
+  // Mixing Mode Configuration
+  Serial.println(F("\n--- RC Mixing Mode ---"));
+  Serial.print(F("Current: "));
+  Serial.println(config.mixing_mode == 1 ? F("Arcade (CH1=Steer, CH2=Throttle)") : F("Tank (CH1=Motor1, CH2=Motor2)"));
+  Serial.println(F("0 = Tank (two sticks, each controls one motor)"));
+  Serial.println(F("1 = Arcade (one stick: up/down=drive, left/right=steer) [RECOMMENDED]"));
+  Serial.print(F("Choice [0-1]: "));
+
+  while (!Serial.available()) delay(10);
+  char choice = Serial.read();
+  while (Serial.available()) Serial.read();
+  Serial.println(choice);
+
+  if (choice == '0') {
+    config.mixing_mode = 0;
+    Serial.println(F("Set to Tank Mode"));
+  } else if (choice == '1') {
+    config.mixing_mode = 1;
+    Serial.println(F("Set to Arcade Mode"));
+  } else {
+    Serial.println(F("Invalid - unchanged"));
+  }
 }
 
 void configureAdaptivePID() {
@@ -1027,10 +1051,21 @@ void updateMotors() {
   // Process RC inputs
   rc_drive_1_processed = processRCInput(rc_drive_1);
   rc_drive_2_processed = processRCInput(rc_drive_2);
-  
-  // Calculate base speeds
-  float base_speed_1 = map(rc_drive_1_processed, 1000, 2000, -255, 255);
-  float base_speed_2 = map(rc_drive_2_processed, 1000, 2000, -255, 255);
+
+  // Calculate base speeds based on mixing mode
+  float base_speed_1, base_speed_2;
+
+  if (config.mixing_mode == 1) {
+    // Arcade Mode: CH1=Steering, CH2=Throttle (recommended for standard FlySky config)
+    int throttle = map(rc_drive_2_processed, 1000, 2000, -255, 255);  // CH2 = forward/back
+    int steering = map(rc_drive_1_processed, 1000, 2000, -255, 255);  // CH1 = left/right
+    base_speed_1 = throttle + steering;  // Left motor
+    base_speed_2 = throttle - steering;  // Right motor
+  } else {
+    // Tank Mode: CH1=Motor1, CH2=Motor2 (original behavior)
+    base_speed_1 = map(rc_drive_1_processed, 1000, 2000, -255, 255);
+    base_speed_2 = map(rc_drive_2_processed, 1000, 2000, -255, 255);
+  }
   
   // Apply acceleration limiting
   base_speed_1 = applyAccelerationLimit(base_speed_1, motor_target_1);
