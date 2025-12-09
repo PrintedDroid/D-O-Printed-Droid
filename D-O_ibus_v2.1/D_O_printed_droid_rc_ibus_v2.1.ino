@@ -144,7 +144,7 @@ struct Configuration {
   bool dynamic_angle_enabled = true;
   bool idle_actions_enabled = true;
   bool state_reactions_enabled = true;
-  bool battery_monitor_enabled = true;
+  bool battery_monitor_enabled = false;
   
   // Battery Configuration (2x 2S = 8.4V full, 6.0V empty)
   float battery_warning = 6.8;    // ~3.4V per cell
