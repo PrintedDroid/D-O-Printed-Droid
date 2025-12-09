@@ -10,9 +10,9 @@ The D-O Droid control system version 2.1 is a complete all-in-one solution for A
 <li><strong>ESP32-S3:</strong> Advanced version with TFT display and onboard IMU</li>
 </ul>
 
-<hr>
 
-<h2 id="why-ibus">Why Choose iBus v2.1?<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="why-ibus">Why Choose iBus v2.1?</h2>
 
 The iBus v2.1 is a complete system that combines ALL functions into one Arduino Mega:
 
@@ -29,9 +29,9 @@ The iBus v2.1 is a complete system that combines ALL functions into one Arduino 
 
 <strong>One Mega does everything - no additional controllers needed!</strong>
 
-<hr>
 
-<h2 id="features">Major Features<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="features">Major Features</h2>
 
 <h3>1. Runtime Configuration Menu (CLI)</h3>
 
@@ -124,9 +124,9 @@ D-O comes alive with:
 <li>Mood-based sound selection via RC channel</li>
 </ul>
 
-<hr>
 
-<h2 id="hardware">Hardware Requirements<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="hardware">Hardware Requirements</h2>
 
 <h3>Required Components</h3>
 
@@ -153,9 +153,9 @@ D-O comes alive with:
 <li>1k resistor for DFPlayer TX line (recommended)</li>
 </ul>
 
-<hr>
 
-<h2 id="wiring">Wiring Diagram<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="wiring">Wiring Diagram</h2>
 
 <h3>Mega → Motor Driver (Cytron MD10C)</h3>
 
@@ -241,9 +241,9 @@ Battery+ ──[10kΩ]──┬──[3.3kΩ]── GND
                    │
                    └── A15 (Mega)</code></pre>
 
-<hr>
 
-<h2 id="setup">Initial Setup Process<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="setup">Initial Setup Process</h2>
 
 <h3>Step 1: First Upload</h3>
 
@@ -300,9 +300,9 @@ For new builds, select Pure iBus mode (Mode 2):
 1 = Hybrid (iBus drive + PWM sound on separate pins)
 2 = Pure iBus (RECOMMENDED - all features in one)</code></pre>
 
-<hr>
 
-<h2 id="channels">RC Channel Mapping<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="channels">RC Channel Mapping</h2>
 
 <h3>FlySky iBus Channels (v2.1)</h3>
 
@@ -346,9 +346,9 @@ For new builds, select Pure iBus mode (Mode 2):
 
 <em>Best for: Custom transmitter mixing, advanced users</em>
 
-<hr>
 
-<h2 id="sounds">SD Card Sound Files<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="sounds">SD Card Sound Files</h2>
 
 Create folder structure on Micro SD card:
 
@@ -388,9 +388,9 @@ Create folder structure on Micro SD card:
 <li>No subfolders inside /mp3/</li>
 </ul>
 
-<hr>
 
-<h2 id="troubleshooting">Troubleshooting<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
 
 <h3>"No DFPlayer found" / No Sound</h3>
 <ul>
@@ -458,9 +458,9 @@ Create folder structure on Micro SD card:
 <li>Run calibration with D-O perfectly upright</li>
 </ul>
 
-<hr>
 
-<h2 id="cli">CLI Command Reference<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="cli">CLI Command Reference</h2>
 
 <h3>Serial Commands (9600 baud)</h3>
 
@@ -527,9 +527,9 @@ Create folder structure on Micro SD card:
 <li>Slow/Medium/Fast KD values</li>
 </ul>
 
-<hr>
 
-<h2 id="upgrade">Upgrading from Older Versions<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="upgrade">Upgrading from Older Versions</h2>
 
 <h3>From v1.1 to v2.1</h3>
 <ol>
@@ -547,9 +547,9 @@ Create folder structure on Micro SD card:
 <li>Verify settings via menu</li>
 </ol>
 
-<hr>
 
-<h2 id="best-practices">Best Practices<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="best-practices">Best Practices</h2>
 
 <ol>
 <li>Always calibrate IMU on perfectly flat, stable surface</li>
@@ -561,9 +561,9 @@ Create folder structure on Micro SD card:
 <li>Save configuration after changes (Menu option 7)</li>
 </ol>
 
-<hr>
 
-<h2 id="version-history">Version History<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="version-history">Version History</h2>
 
 <strong>v2.1.2 (December 2024):</strong>
 <ul>
@@ -593,9 +593,9 @@ Create folder structure on Micro SD card:
 <li>Battery monitoring</li>
 </ul>
 
-<hr>
 
-<h2 id="community">Community &amp; Support<a href="#top" class="to-top">To top</a></h2>
+
+<h2 id="community">Community &amp; Support</h2>
 
 <p><strong>Website:</strong> <a href="https://www.printed-droid.com" target="_blank">www.printed-droid.com</a></p>
 <p><strong>Facebook:</strong> <a href="https://www.facebook.com/groups/printeddroid/" target="_blank">Printed Droid Community</a></p>
@@ -613,7 +613,7 @@ Create folder structure on Micro SD card:
 </ul></li>
 </ol>
 
-<hr>
+
 
 <div style="text-align: center; padding: 20px; background-color: #f0f0f0; margin-top: 30px;">
 <h3>Remember: With iBus v2.1, one Mega does everything!</h3>
