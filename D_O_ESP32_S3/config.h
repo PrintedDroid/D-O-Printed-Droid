@@ -21,19 +21,27 @@
 #define SERIAL_BAUD 115200
 
 // IMU Configuration
-#define USE_QMI8658C true      // Internal IMU on board
-#define USE_MPU6050 false      // External IMU - NOT CONNECTED!
-#define IMU_FUSION_MODE false  // Cannot use fusion without both IMUs
+// Only QMI8658C (onboard) is used - sufficient for self-balancing
+#define USE_QMI8658C true      // Internal IMU on TENSTAR ESP32-S3 board
+
+// External IMUs - DISABLED (not needed for D-O)
+// #define USE_MPU6050 false   // MPU6050 - not connected
+// #define USE_BNO055 false    // BNO055 - has clock stretching issues with ESP32
+#define USE_MPU6050 false      // Keep false - not used
+#define IMU_FUSION_MODE false  // Single IMU mode - no fusion needed
 
 // IMU I2C Addresses
 #define QMI8658C_ADDRESS 0x6B
 #define QMI8658_L_SLAVE_ADDRESS 0x6B  // For SensorLib compatibility
-#define MPU6050_ADDRESS 0x68
+// #define MPU6050_ADDRESS 0x68       // Not used
+// #define BNO055_ADDRESS 0x28        // Not used (has ESP32 I2C issues)
+#define MPU6050_ADDRESS 0x68          // Keep for compile compatibility
+
+// Pressure sensor (optional)
 #define BMP280_ADDRESS 0x77
 
 // IMU Update rates (Hz)
-#define IMU_UPDATE_RATE 100    // 100Hz = 10ms
-#define FUSION_UPDATE_RATE 100 // When using both IMUs
+#define IMU_UPDATE_RATE 100    // 100Hz = 10ms for QMI8658C
 
 // ============================================================================
 // PIN DEFINITIONS - ESP32-S3
