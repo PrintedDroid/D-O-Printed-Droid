@@ -2,7 +2,7 @@
  * PROJECT: D-O Self-Balancing Droid with iBus Control
  * ORIGINAL: Reinhard Stockinger 2020/11
  * ENHANCED: Optimized version from Printed-Droid.com
- * VERSION: 2.1.4 (Added motor test menu, 45° tilt safety cutoff)
+ * VERSION: 2.1.5 (Added IMU axis test, motor test menu, 45° tilt safety)
  * DATE:    December 2025
  * 
  * DESCRIPTION:
@@ -346,7 +346,7 @@ unsigned long startup_time = 0;
 void setup() {
   // Initialize serial
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1.4 ==="));
+  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1.5 ==="));
   
   // Load configuration from EEPROM
   loadConfiguration();
@@ -536,6 +536,7 @@ void configurationMenu() {
     Serial.println(F("7. IMU Calibration"));
     Serial.println(F("8. Setup Type (PWM/Hybrid/iBus)"));
     Serial.println(F("M. Motor Test & Configuration"));
+    Serial.println(F("I. IMU Axis Test (live angles)"));
     Serial.println(F("9. Save and Exit"));
     Serial.println(F("0. Exit without Saving"));
     Serial.print(F("\nSelect option: "));
@@ -557,6 +558,8 @@ void configurationMenu() {
       case '8': configureSetupType(); break;
       case 'M':
       case 'm': motorTestMenu(); break;
+      case 'I':
+      case 'i': imuTestMenu(); break;
       case '9':
         saveConfiguration();
         Serial.println(F("Configuration saved!"));
@@ -839,6 +842,67 @@ void motorTestMenu() {
       default:
         Serial.println(F("Invalid option"));
     }
+  }
+}
+
+void imuTestMenu() {
+  Serial.println(F("\n=== IMU AXIS TEST ==="));
+  Serial.println(F("This test shows live IMU angles to verify correct orientation."));
+  Serial.println(F("Angle[0] is used for balancing (front/back tilt)."));
+  Serial.println(F("\nInstructions:"));
+  Serial.println(F("1. Hold D-O upright - both angles should be near 0"));
+  Serial.println(F("2. Tilt D-O FORWARD (nose down) - Angle[0] should INCREASE"));
+  Serial.println(F("3. Tilt D-O BACKWARD (nose up) - Angle[0] should DECREASE"));
+  Serial.println(F("4. Tilt D-O LEFT/RIGHT - Angle[1] should change"));
+  Serial.println(F("\nIf Angle[0] doesn't respond to front/back tilt:"));
+  Serial.println(F("  -> IMU is mounted wrong (X/Y swapped or rotated 90 degrees)"));
+  Serial.println(F("\nPress any key to stop...\n"));
+
+  delay(500);
+  while (Serial.available()) Serial.read(); // Clear buffer
+
+  unsigned long last_print = 0;
+
+  while (!Serial.available()) {
+    // Update IMU readings
+    updateIMUReadings();
+
+    // Print every 200ms
+    if (millis() - last_print > 200) {
+      Serial.print(F("Angle[0] (Balance): "));
+      if (total_angle[0] >= 0) Serial.print(F(" "));
+      Serial.print(total_angle[0], 1);
+      Serial.print(F("°   Angle[1] (Side): "));
+      if (total_angle[1] >= 0) Serial.print(F(" "));
+      Serial.print(total_angle[1], 1);
+      Serial.print(F("°   Raw Accel: X="));
+      Serial.print(acc_x);
+      Serial.print(F(" Y="));
+      Serial.print(acc_y);
+      Serial.print(F(" Z="));
+      Serial.println(acc_z);
+
+      last_print = millis();
+    }
+  }
+
+  while (Serial.available()) Serial.read(); // Clear buffer
+  Serial.println(F("\nIMU test stopped."));
+
+  // Diagnostic summary
+  Serial.println(F("\nQuick Diagnostic:"));
+  Serial.print(F("  Current balance angle: "));
+  Serial.print(total_angle[0], 1);
+  Serial.println(F("°"));
+  Serial.print(F("  Target angle: "));
+  Serial.print(config.target_angle, 1);
+  Serial.println(F("°"));
+  Serial.print(F("  Difference: "));
+  Serial.print(total_angle[0] - config.target_angle, 1);
+  Serial.println(F("°"));
+
+  if (abs(total_angle[0]) > 45) {
+    Serial.println(F("\n  WARNING: Angle > 45° - D-O appears to be lying down!"));
   }
 }
 

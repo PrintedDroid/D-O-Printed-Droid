@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - Universal Controller v3
 
-![Version](https://img.shields.io/badge/version-3.3.3-blue.svg)
+![Version](https://img.shields.io/badge/version-3.3.4-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -56,12 +56,17 @@ Designed for builders who want the most advanced and reliable D-O control system
 
 ## 📝 Changelog
 
-### Version 3.3.3 (December 2025)
+### Version 3.3.4 (December 2025)
 
-**Motor Test & Configuration Menu + Safety Features**
+**IMU Axis Test + Motor Test & Safety Features**
 
 #### ✨ New Features
 
+- **IMU Axis Test** (`i` in CLI): Live angle display to verify IMU orientation
+  - Shows Angle[0] (balance) and Angle[1] (side) in real-time
+  - Displays raw accelerometer values (X, Y, Z)
+  - Instructions to verify correct front/back tilt response
+  - Helps diagnose X/Y axis swap or wrong IMU mounting
 - **Motor Test Menu** (`m` in CLI): Test individual motors and configure wiring
   - Test Motor 1 (Left) / Motor 2 (Right) individually
   - Test both motors forward/backward
@@ -405,6 +410,7 @@ Send `m` at any time to open the full configuration menu.
 8. IMU Calibration
 9. Show Current Status
 m. Motor Test & Config
+i. IMU Axis Test (live angles)
 s. Save and Exit
 0. Exit without Saving
 ```
@@ -480,7 +486,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Universal Controller v3.3.3 ===
+   === D-O Universal Controller v3.3.4 ===
    Configuration loaded
    Setup Mode: iBus (Recommended)
    IMU found at 0x68
