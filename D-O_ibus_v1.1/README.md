@@ -283,24 +283,10 @@ v3.3.0 adds:
 
 **Original Design:**
 - D-O Droid Design: Star Wars / Lucasfilm
-- 3D Model: [Printed-Droid.com](https://www.printed-droid.com)
 
 **Software:**
 - Original code: Reinhard Stockinger (2020)
-- PCB Design: Nitewing
-
----
-
-## 📄 License
-
-MIT License - See LICENSE file for details.
-
----
-
-## 💬 Support
-
-- GitHub Issues: [Create an issue](https://github.com/PrintedDroid/D-O-Printed-Droid/issues)
-- Forum: [Printed-Droid.com Forum](https://www.printed-droid.com/forum)
+- PCB Design: Printed-Droid.com
 
 ---
 
@@ -311,3 +297,4 @@ MIT License - See LICENSE file for details.
 *For the latest updates, visit: [www.printed-droid.com](https://www.printed-droid.com)*
 
 </div>
+
