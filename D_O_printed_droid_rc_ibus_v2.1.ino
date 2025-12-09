@@ -2,8 +2,8 @@
  * PROJECT: D-O Self-Balancing Droid with iBus Control
  * ORIGINAL: Reinhard Stockinger 2020/11
  * ENHANCED: Optimized version from Printed-Droid.com
- * VERSION: 2.0 (Full Feature Set with Configuration Menu)
- * DATE:    June 2025
+ * VERSION: 2.1 (Added configurable iBus baudrate)
+ * DATE:    December 2025
  * 
  * DESCRIPTION:
  * Complete control system for a self-balancing D-O droid replica featuring:
@@ -129,7 +129,8 @@ struct Configuration {
   
   // Setup Type Configuration
   uint8_t setup_type = 2;  // 0=PWM, 1=Hybrid, 2=iBus (default)
-  
+  uint32_t ibus_baudrate = 9600;  // iBus baudrate (9600 or 115200)
+
   // PID Configuration
   float kp = 25.0;
   float ki = 0.0;
@@ -336,7 +337,7 @@ unsigned long startup_time = 0;
 void setup() {
   // Initialize serial
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Self-Balancing Controller v3.0 ==="));
+  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1 ==="));
   
   // Load configuration from EEPROM
   loadConfiguration();
@@ -408,11 +409,13 @@ void setup() {
   #endif
 
   // Initialize iBus on Serial1 (RX1 pin 19)
-  // Using 9600 baud - matches v1.1 which works with the receiver
+  // Baudrate is configurable via menu (default: 9600)
   #ifdef IBUS_AVAILABLE
-    Serial1.begin(9600);
+    Serial1.begin(config.ibus_baudrate);
     IBus.begin(Serial1, IBUSBM_NOTIMER);
-    Serial.println(F("iBus initialized on Serial1 @ 9600 baud"));
+    Serial.print(F("iBus initialized @ "));
+    Serial.print(config.ibus_baudrate);
+    Serial.println(F(" baud"));
   #endif
 
   #ifdef DFPLAYER_ENABLED
@@ -635,31 +638,66 @@ void configureAdaptivePID() {
 
 void configureSetupType() {
   Serial.println(F("\n--- Setup Type Configuration ---"));
-  Serial.println(F("Current setup type: "));
-  
+  Serial.print(F("Current setup type: "));
+
   switch (config.setup_type) {
     case 0: Serial.println(F("PWM Only (Original - Nano handles sound)")); break;
     case 1: Serial.println(F("Hybrid (iBus CH1-6, PWM CH7-10)")); break;
     case 2: Serial.println(F("Pure iBus (All channels via iBus)")); break;
   }
-  
+
+  Serial.print(F("Current iBus baudrate: "));
+  Serial.println(config.ibus_baudrate);
+
   Serial.println(F("\nSelect new setup type:"));
   Serial.println(F("0 = PWM Only (Balance only, external Nano for sound)"));
   Serial.println(F("1 = Hybrid (iBus drive + PWM sound)"));
   Serial.println(F("2 = Pure iBus (Recommended)"));
-  Serial.print(F("Choice [0-2]: "));
-  
+  Serial.println(F("b = Change iBus baudrate"));
+  Serial.print(F("Choice [0-2, b]: "));
+
   while (!Serial.available()) delay(10);
   char choice = Serial.read();
   while (Serial.available()) Serial.read();
-  
+  Serial.println(choice);
+
   if (choice >= '0' && choice <= '2') {
     config.setup_type = choice - '0';
     Serial.print(F("Setup type changed to: "));
     Serial.println(config.setup_type);
     Serial.println(F("RESTART REQUIRED for changes to take effect!"));
+  } else if (choice == 'b' || choice == 'B') {
+    configureIbusBaudrate();
   } else {
     Serial.println(F("Invalid choice"));
+  }
+}
+
+void configureIbusBaudrate() {
+  Serial.println(F("\n--- iBus Baudrate Configuration ---"));
+  Serial.print(F("Current baudrate: "));
+  Serial.println(config.ibus_baudrate);
+
+  Serial.println(F("\nSelect baudrate:"));
+  Serial.println(F("1 = 9600 (non-standard, but works with some receivers)"));
+  Serial.println(F("2 = 115200 (standard iBus baudrate)"));
+  Serial.print(F("Choice [1-2]: "));
+
+  while (!Serial.available()) delay(10);
+  char choice = Serial.read();
+  while (Serial.available()) Serial.read();
+  Serial.println(choice);
+
+  if (choice == '1') {
+    config.ibus_baudrate = 9600;
+    Serial.println(F("Baudrate set to 9600"));
+    Serial.println(F("RESTART REQUIRED for changes to take effect!"));
+  } else if (choice == '2') {
+    config.ibus_baudrate = 115200;
+    Serial.println(F("Baudrate set to 115200"));
+    Serial.println(F("RESTART REQUIRED for changes to take effect!"));
+  } else {
+    Serial.println(F("Invalid choice - baudrate unchanged"));
   }
 }
 
@@ -1395,5 +1433,5 @@ void playSound(uint8_t track) {
 #endif
 
 // ============================================================================
-// End of D-O Self-Balancing Controller v2.0
+// End of D-O Self-Balancing Controller v2.1
 // ============================================================================
