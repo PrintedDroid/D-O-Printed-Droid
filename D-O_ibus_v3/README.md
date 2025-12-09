@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - Universal Controller v3
 
-![Version](https://img.shields.io/badge/version-3.3.5-blue.svg)
+![Version](https://img.shields.io/badge/version-3.3.6-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -55,6 +55,17 @@ Designed for builders who want the most advanced and reliable D-O control system
 ---
 
 ## 📝 Changelog
+
+### Version 3.3.6 (December 2025)
+
+**CLI Help Command**
+
+- **Help Function** (`h` or `?`): Shows all available CLI commands
+  - Quick commands overview (m = menu, h = help)
+  - Full menu structure with all options
+  - Startup commands (m = menu, c = calibration)
+
+---
 
 ### Version 3.3.5 (December 2025)
 
@@ -389,7 +400,8 @@ Connect via Serial Monitor at **9600 baud**.
 | Command | Description |
 |---------|-------------|
 | `m` | Open configuration menu |
-| `c` | Run IMU calibration |
+| `h` / `?` | Show help (all commands) |
+| `c` | Run IMU calibration (startup only) |
 
 ### Configuration Menu Access
 
@@ -490,7 +502,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Universal Controller v3.3.5 ===
+   === D-O Universal Controller v3.3.6 ===
    Configuration loaded
    Setup Mode: iBus (Recommended)
    IMU found at 0x68
