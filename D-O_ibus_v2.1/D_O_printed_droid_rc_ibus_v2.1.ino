@@ -172,7 +172,12 @@ struct Configuration {
   float kd_slow = 0.8;
   float kd_medium = 0.6;
   float kd_fast = 0.4;
-  
+
+  // Motor Configuration
+  bool motor_swap = false;      // Swap Motor 1 and Motor 2
+  bool motor1_invert = false;   // Invert Motor 1 direction
+  bool motor2_invert = false;   // Invert Motor 2 direction
+
   // IMU Calibration (separate storage)
   int16_t accel_x_offset = 0;
   int16_t accel_y_offset = 0;
@@ -520,7 +525,7 @@ void loop() {
 
 void configurationMenu() {
   Serial.println(F("\n=== CONFIGURATION MENU ==="));
-  
+
   while (true) {
     Serial.println(F("\n1. PID Configuration"));
     Serial.println(F("2. Feature Toggles"));
@@ -530,16 +535,17 @@ void configurationMenu() {
     Serial.println(F("6. Adaptive PID Settings"));
     Serial.println(F("7. IMU Calibration"));
     Serial.println(F("8. Setup Type (PWM/Hybrid/iBus)"));
+    Serial.println(F("M. Motor Test & Configuration"));
     Serial.println(F("9. Save and Exit"));
     Serial.println(F("0. Exit without Saving"));
     Serial.print(F("\nSelect option: "));
-    
+
     while (!Serial.available()) delay(10);
     char option = Serial.read();
     while (Serial.available()) Serial.read(); // Clear buffer
-    
+
     Serial.println(option);
-    
+
     switch (option) {
       case '1': configurePID(); break;
       case '2': configureFeatures(); break;
@@ -549,7 +555,9 @@ void configurationMenu() {
       case '6': configureAdaptivePID(); break;
       case '7': runIMUCalibration(); break;
       case '8': configureSetupType(); break;
-      case '9': 
+      case 'M':
+      case 'm': motorTestMenu(); break;
+      case '9':
         saveConfiguration();
         Serial.println(F("Configuration saved!"));
         if (config.setup_type != setup_type) {
@@ -725,6 +733,112 @@ void configureIbusBaudrate() {
     Serial.println(F("RESTART REQUIRED for changes to take effect!"));
   } else {
     Serial.println(F("Invalid choice - baudrate unchanged"));
+  }
+}
+
+void motorTestMenu() {
+  Serial.println(F("\n=== MOTOR TEST & CONFIGURATION ==="));
+  Serial.println(F("WARNING: D-O should be on a stand or held safely!"));
+  Serial.println(F("Motors will spin during testing!\n"));
+
+  while (true) {
+    Serial.println(F("\nCurrent Motor Configuration:"));
+    Serial.print(F("  Motor Swap (L<->R): ")); Serial.println(config.motor_swap ? F("YES") : F("NO"));
+    Serial.print(F("  Motor 1 Invert:     ")); Serial.println(config.motor1_invert ? F("YES") : F("NO"));
+    Serial.print(F("  Motor 2 Invert:     ")); Serial.println(config.motor2_invert ? F("YES") : F("NO"));
+
+    Serial.println(F("\nOptions:"));
+    Serial.println(F("1. Test Motor 1 (Left) - Forward"));
+    Serial.println(F("2. Test Motor 2 (Right) - Forward"));
+    Serial.println(F("3. Test Both Motors - Forward"));
+    Serial.println(F("4. Test Both Motors - Backward"));
+    Serial.println(F("S. Toggle Motor Swap (Left<->Right)"));
+    Serial.println(F("A. Toggle Motor 1 Invert"));
+    Serial.println(F("B. Toggle Motor 2 Invert"));
+    Serial.println(F("X. Exit Motor Test"));
+    Serial.print(F("\nSelect: "));
+
+    while (!Serial.available()) delay(10);
+    char choice = Serial.read();
+    while (Serial.available()) Serial.read();
+    Serial.println(choice);
+
+    // Stop motors before each action
+    analogWrite(PWM1_PIN, 0);
+    analogWrite(PWM2_PIN, 0);
+
+    switch (choice) {
+      case '1': // Test Motor 1
+        Serial.println(F("Motor 1 (Left) running FORWARD for 2 seconds..."));
+        digitalWrite(DIR1_PIN, config.motor1_invert ? LOW : HIGH);
+        analogWrite(PWM1_PIN, 150);
+        delay(2000);
+        analogWrite(PWM1_PIN, 0);
+        Serial.println(F("Done. Did the LEFT wheel spin FORWARD?"));
+        Serial.println(F("If not: Try 'S' to swap or 'A' to invert"));
+        break;
+
+      case '2': // Test Motor 2
+        Serial.println(F("Motor 2 (Right) running FORWARD for 2 seconds..."));
+        digitalWrite(DIR2_PIN, config.motor2_invert ? LOW : HIGH);
+        analogWrite(PWM2_PIN, 150);
+        delay(2000);
+        analogWrite(PWM2_PIN, 0);
+        Serial.println(F("Done. Did the RIGHT wheel spin FORWARD?"));
+        Serial.println(F("If not: Try 'S' to swap or 'B' to invert"));
+        break;
+
+      case '3': // Both Forward
+        Serial.println(F("Both motors running FORWARD for 2 seconds..."));
+        digitalWrite(DIR1_PIN, config.motor1_invert ? LOW : HIGH);
+        digitalWrite(DIR2_PIN, config.motor2_invert ? LOW : HIGH);
+        analogWrite(PWM1_PIN, 150);
+        analogWrite(PWM2_PIN, 150);
+        delay(2000);
+        analogWrite(PWM1_PIN, 0);
+        analogWrite(PWM2_PIN, 0);
+        Serial.println(F("Done. Both wheels should have spun FORWARD."));
+        break;
+
+      case '4': // Both Backward
+        Serial.println(F("Both motors running BACKWARD for 2 seconds..."));
+        digitalWrite(DIR1_PIN, config.motor1_invert ? HIGH : LOW);
+        digitalWrite(DIR2_PIN, config.motor2_invert ? HIGH : LOW);
+        analogWrite(PWM1_PIN, 150);
+        analogWrite(PWM2_PIN, 150);
+        delay(2000);
+        analogWrite(PWM1_PIN, 0);
+        analogWrite(PWM2_PIN, 0);
+        Serial.println(F("Done. Both wheels should have spun BACKWARD."));
+        break;
+
+      case 'S':
+      case 's':
+        config.motor_swap = !config.motor_swap;
+        Serial.print(F("Motor Swap: ")); Serial.println(config.motor_swap ? F("ENABLED") : F("DISABLED"));
+        break;
+
+      case 'A':
+      case 'a':
+        config.motor1_invert = !config.motor1_invert;
+        Serial.print(F("Motor 1 Invert: ")); Serial.println(config.motor1_invert ? F("ENABLED") : F("DISABLED"));
+        break;
+
+      case 'B':
+      case 'b':
+        config.motor2_invert = !config.motor2_invert;
+        Serial.print(F("Motor 2 Invert: ")); Serial.println(config.motor2_invert ? F("ENABLED") : F("DISABLED"));
+        break;
+
+      case 'X':
+      case 'x':
+        Serial.println(F("Exiting Motor Test..."));
+        Serial.println(F("Remember to SAVE configuration in main menu!"));
+        return;
+
+      default:
+        Serial.println(F("Invalid option"));
+    }
   }
 }
 
@@ -1109,11 +1223,29 @@ void updateMotors() {
     }
   }
 
+  // Apply motor configuration (swap/invert)
+  int out_speed_1 = motor_speed_1;
+  int out_speed_2 = motor_speed_2;
+  int out_dir_1 = motor_direction_1;
+  int out_dir_2 = motor_direction_2;
+
+  // Swap motors if configured
+  if (config.motor_swap) {
+    out_speed_1 = motor_speed_2;
+    out_speed_2 = motor_speed_1;
+    out_dir_1 = motor_direction_2;
+    out_dir_2 = motor_direction_1;
+  }
+
+  // Invert directions if configured
+  if (config.motor1_invert) out_dir_1 = !out_dir_1;
+  if (config.motor2_invert) out_dir_2 = !out_dir_2;
+
   // Output to motors
-  digitalWrite(DIR1_PIN, motor_direction_1);
-  analogWrite(PWM1_PIN, motor_speed_1);
-  digitalWrite(DIR2_PIN, motor_direction_2);
-  analogWrite(PWM2_PIN, motor_speed_2);
+  digitalWrite(DIR1_PIN, out_dir_1);
+  analogWrite(PWM1_PIN, out_speed_1);
+  digitalWrite(DIR2_PIN, out_dir_2);
+  analogWrite(PWM2_PIN, out_speed_2);
 }
 
 int processRCInput(int raw_input) {
