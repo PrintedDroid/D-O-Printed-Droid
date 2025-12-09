@@ -819,11 +819,10 @@ Angle = 0.98 × (Angle + Gyro × dt) + 0.02 × Accel
 
 **Original Design:**
 - D-O Droid Design: Star Wars / Lucasfilm
-- 3D Model: [Printed-Droid.com](https://www.printed-droid.com)
 
 **Software:**
 - Base code: Reinhard Stockinger (2020)
-- Optimization v3.x: PrintedDroid Community
+- Optimization v3.x: Printed-Droid.com
 
 **Libraries:**
 - IBusBM: Bolder Flight Systems
@@ -879,8 +878,6 @@ Contributions are welcome!
 **Questions or issues?**
 
 - GitHub Issues: [Create an issue](https://github.com/PrintedDroid/D-O-Printed-Droid/issues)
-- Forum: [Printed-Droid.com Forum](https://www.printed-droid.com/forum)
-- Discord: [PrintedDroid Community](https://discord.gg/printeddroid)
 
 ---
 
@@ -900,8 +897,7 @@ This code is provided "as is" without warranty. The authors assume no liability 
 
 **May the Force be with your D-O!** ⚡🤖
 
-[![Star on GitHub](https://img.shields.io/github/stars/PrintedDroid/D-O-Printed-Droid?style=social)](https://github.com/PrintedDroid/D-O-Printed-Droid)
-
 *For the latest updates and community support, visit: [www.printed-droid.com](https://www.printed-droid.com)*
 
 </div>
+
