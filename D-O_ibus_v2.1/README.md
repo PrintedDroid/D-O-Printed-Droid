@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - iBus Controller v2.1
 
-![Version](https://img.shields.io/badge/version-2.1.6-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.7-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -51,6 +51,17 @@ Built on the proven v1.1 foundation with significant feature additions for build
 ---
 
 ## 📝 Changelog
+
+### Version 2.1.7 (December 2025)
+
+**CLI Help Command**
+
+- **Help Function** (`h` or `?`): Shows all available CLI commands
+  - Quick commands overview (m = menu, h = help)
+  - Full menu structure with all options
+  - Startup commands (m = menu, c = calibration)
+
+---
 
 ### Version 2.1.6 (December 2025)
 
@@ -393,8 +404,8 @@ Connect via Serial Monitor at **9600 baud**.
 | Command | Description |
 |---------|-------------|
 | `m` | Open configuration menu |
-| `c` | Run IMU calibration |
-| `s` | Show current status |
+| `h` / `?` | Show help (all commands) |
+| `c` | Run IMU calibration (startup only) |
 
 ### Configuration Menu Access
 
@@ -498,7 +509,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Self-Balancing Controller v2.1.6 ===
+   === D-O Self-Balancing Controller v2.1.7 ===
    Configuration loaded from EEPROM
    iBus initialized @ 9600 baud
    Waiting for RC signal...

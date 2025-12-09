@@ -1,6 +1,6 @@
 /********************************************************************************
  * PROJECT: D-O Self-Balancing Droid - Universal Controller
- * VERSION: 3.3.5 (Added IMU axis invert, IMU test, motor test, 45° tilt safety)
+ * VERSION: 3.3.6 (Added CLI help command)
  * DATE:    December 2025
  *
  * DESCRIPTION:
@@ -427,13 +427,42 @@ void setup() {
   next_idle_interval = random(config.idle_interval_min, config.idle_interval_max);
 
   system_ready = true;
-  Serial.println(F("System ready!"));
+  Serial.println(F("System ready! Press 'm' for menu, 'h' for help"));
 
   // Play ready sound
   if (sound_enabled) {
     delay(200);  // Short delay to ensure DFPlayer is ready
     playSound(SOUND_SYSTEM_READY);
   }
+}
+
+// ============================================================================
+// HELP COMMAND
+// ============================================================================
+
+void showHelp() {
+  Serial.println(F("\n=== CLI HELP (v3) ==="));
+  Serial.println(F("\nQuick Commands (available anytime):"));
+  Serial.println(F("  m - Open configuration menu"));
+  Serial.println(F("  h - Show this help (also: ?)"));
+  Serial.println(F("\nConfiguration Menu Options:"));
+  Serial.println(F("  1 - Setup Mode (PWM/iBus)"));
+  Serial.println(F("  2 - PID Configuration"));
+  Serial.println(F("  3 - Adaptive PID Settings"));
+  Serial.println(F("  4 - Driving Dynamics"));
+  Serial.println(F("  5 - Battery Settings"));
+  Serial.println(F("  6 - Sound Settings"));
+  Serial.println(F("  7 - Feature Toggles"));
+  Serial.println(F("  8 - IMU Calibration"));
+  Serial.println(F("  9 - Show Current Status"));
+  Serial.println(F("  m - Motor Test & Config"));
+  Serial.println(F("  i - IMU Axis Test (live angles)"));
+  Serial.println(F("  s - Save and Exit"));
+  Serial.println(F("  0 - Exit without Saving"));
+  Serial.println(F("\nStartup Commands (within 3 seconds):"));
+  Serial.println(F("  m - Enter configuration menu"));
+  Serial.println(F("  c - Run IMU calibration"));
+  Serial.println();
 }
 
 // ============================================================================
@@ -470,6 +499,9 @@ void loop() {
         wdt_enable(WDTO_2S);  // Re-enable after menu
       }
       emergency_stop = false;
+    } else if (cmd == 'h' || cmd == 'H' || cmd == '?') {
+      // Show help
+      showHelp();
     }
   }
 

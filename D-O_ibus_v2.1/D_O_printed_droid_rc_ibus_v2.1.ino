@@ -2,7 +2,7 @@
  * PROJECT: D-O Self-Balancing Droid with iBus Control
  * ORIGINAL: Reinhard Stockinger 2020/11
  * ENHANCED: Optimized version from Printed-Droid.com
- * VERSION: 2.1.6 (Added IMU axis invert, IMU test, motor test, 45° tilt safety)
+ * VERSION: 2.1.7 (Added CLI help command)
  * DATE:    December 2025
  * 
  * DESCRIPTION:
@@ -446,7 +446,35 @@ void setup() {
   next_idle_interval = random(config.idle_interval_min, config.idle_interval_max);
   
   system_ready = true;
-  Serial.println(F("System ready! Configuration menu available anytime via 'm'"));
+  Serial.println(F("System ready! Press 'm' for menu, 'h' for help"));
+}
+
+// ============================================================================
+// HELP COMMAND
+// ============================================================================
+
+void showHelp() {
+  Serial.println(F("\n=== CLI HELP (v2.1) ==="));
+  Serial.println(F("\nQuick Commands (available anytime):"));
+  Serial.println(F("  m - Open configuration menu"));
+  Serial.println(F("  h - Show this help (also: ?)"));
+  Serial.println(F("\nConfiguration Menu Options:"));
+  Serial.println(F("  1 - PID Configuration"));
+  Serial.println(F("  2 - Feature Toggles"));
+  Serial.println(F("  3 - Battery Settings"));
+  Serial.println(F("  4 - Sound Settings"));
+  Serial.println(F("  5 - Driving Dynamics"));
+  Serial.println(F("  6 - Adaptive PID Settings"));
+  Serial.println(F("  7 - IMU Calibration"));
+  Serial.println(F("  8 - Setup Type (PWM/Hybrid/iBus)"));
+  Serial.println(F("  M - Motor Test & Configuration"));
+  Serial.println(F("  I - IMU Axis Test (live angles)"));
+  Serial.println(F("  9 - Save and Exit"));
+  Serial.println(F("  0 - Exit without Saving"));
+  Serial.println(F("\nStartup Commands (within 3 seconds):"));
+  Serial.println(F("  m - Enter configuration menu"));
+  Serial.println(F("  c - Run IMU calibration"));
+  Serial.println();
 }
 
 // ============================================================================
@@ -462,6 +490,9 @@ void loop() {
       emergency_stop_active = true;  // Stop motors for safety
       configurationMenu();
       emergency_stop_active = false;
+    } else if (cmd == 'h' || cmd == 'H' || cmd == '?') {
+      // Show help
+      showHelp();
     }
   }
   
