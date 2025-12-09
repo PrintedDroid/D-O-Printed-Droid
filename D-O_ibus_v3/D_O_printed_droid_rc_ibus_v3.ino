@@ -116,7 +116,7 @@ struct Configuration {
   bool dynamic_angle_enabled = true;
   bool idle_actions_enabled = true;
   bool state_reactions_enabled = true;
-  bool battery_monitor = true;
+  bool battery_monitor = false;
   bool battery_recovery = false;
   bool servos_enabled = true;
   bool watchdog_enabled = true;
