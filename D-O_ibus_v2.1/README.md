@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - iBus Controller v2.1
 
-![Version](https://img.shields.io/badge/version-2.1.2-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.7-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -51,6 +51,52 @@ Built on the proven v1.1 foundation with significant feature additions for build
 ---
 
 ## 📝 Changelog
+
+### Version 2.1.7 (December 2025)
+
+**CLI Help Command**
+
+- **Help Function** (`h` or `?`): Shows all available CLI commands
+  - Quick commands overview (m = menu, h = help)
+  - Full menu structure with all options
+  - Startup commands (m = menu, c = calibration)
+
+---
+
+### Version 2.1.6 (December 2025)
+
+**IMU Axis Invert + Test & Safety Features**
+
+#### ✨ New Features
+
+- **IMU Axis Invert** (`F` in IMU test menu): Software fix for reversed IMU orientation
+  - No need to physically remount the IMU
+  - Toggle front/back direction via CLI
+  - Saved to EEPROM
+- **IMU Axis Test** (`i` in CLI): Live angle display to verify IMU orientation
+  - Shows Angle[0] (balance) and Angle[1] (side) in real-time
+  - Displays raw accelerometer values (X, Y, Z)
+  - Instructions to verify correct front/back tilt response
+  - Helps diagnose X/Y axis swap or wrong IMU mounting
+- **Motor Test Menu** (`m` in CLI): Test individual motors and configure wiring
+  - Test Motor 1 (Left) / Motor 2 (Right) individually
+  - Test both motors forward/backward
+  - Toggle motor swap (Left↔Right)
+  - Toggle motor direction inversion (per motor)
+  - Helps diagnose wiring issues that cause PID oscillation
+- **45° Tilt Safety Cutoff**: Motors automatically stop when droid falls over
+  - Prevents motor burnout from stalled motors
+  - Auto-resumes when droid is upright again
+
+---
+
+### Version 2.1.3 (December 2025)
+
+**Safety Tilt Cutoff**
+
+- Added 45° tilt angle safety cutoff to prevent motor damage
+
+---
 
 ### Version 2.1.2 (December 2025)
 
@@ -358,8 +404,8 @@ Connect via Serial Monitor at **9600 baud**.
 | Command | Description |
 |---------|-------------|
 | `m` | Open configuration menu |
-| `c` | Run IMU calibration |
-| `s` | Show current status |
+| `h` / `?` | Show help (all commands) |
+| `c` | Run IMU calibration (startup only) |
 
 ### Configuration Menu Access
 
@@ -382,6 +428,8 @@ Send `m` at any time to open the full configuration menu.
 6. Adaptive PID Settings
 7. IMU Calibration
 8. Setup Type (PWM/Hybrid/iBus + Baudrate)
+m. Motor Test & Config
+i. IMU Axis Test (live angles)
 9. Save and Exit
 0. Exit without Saving
 ```
@@ -461,7 +509,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Self-Balancing Controller v2.1.2 ===
+   === D-O Self-Balancing Controller v2.1.7 ===
    Configuration loaded from EEPROM
    iBus initialized @ 9600 baud
    Waiting for RC signal...

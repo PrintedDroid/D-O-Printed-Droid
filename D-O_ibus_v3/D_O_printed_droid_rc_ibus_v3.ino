@@ -1,6 +1,6 @@
 /********************************************************************************
  * PROJECT: D-O Self-Balancing Droid - Universal Controller
- * VERSION: 3.3.1 (Added RC Mixing Mode selection)
+ * VERSION: 3.3.6 (Added CLI help command)
  * DATE:    December 2025
  *
  * DESCRIPTION:
@@ -147,6 +147,14 @@ struct Configuration {
   float kd_slow = 0.8;
   float kd_medium = 0.6;
   float kd_fast = 0.4;
+
+  // Motor Configuration
+  bool motor_swap = false;      // Swap Motor 1 and Motor 2
+  bool motor1_invert = false;   // Invert Motor 1 direction
+  bool motor2_invert = false;   // Invert Motor 2 direction
+
+  // IMU Configuration
+  bool imu_invert = false;      // Invert balance axis (if tilting forward shows wrong direction)
 
   // IMU Calibration
   int16_t accel_x_offset = 0;
@@ -347,7 +355,7 @@ unsigned long last_freq_print = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Universal Controller v3.3.1 ==="));
+  Serial.println(F("\n=== D-O Universal Controller v3.3.5 ==="));
 
   // Load configuration
   loadConfiguration();
@@ -357,11 +365,8 @@ void setup() {
   current_ki = config.ki;
   current_kd = config.kd;
 
-  // Enable Watchdog Timer (2 second timeout)
-  if (config.watchdog_enabled) {
-    wdt_enable(WDTO_2S);
-    Serial.println(F("Watchdog enabled (2s timeout)"));
-  }
+  // NOTE: Watchdog is enabled AFTER menu wait to prevent reset loop
+  // (menu wait is 3 seconds, watchdog timeout is 2 seconds)
 
   // Initialize I2C and IMU
   Wire.begin();
@@ -400,6 +405,13 @@ void setup() {
     }
   }
 
+  // Enable Watchdog Timer AFTER menu wait (2 second timeout)
+  // This prevents reset loop since menu wait is 3 seconds
+  if (config.watchdog_enabled) {
+    wdt_enable(WDTO_2S);
+    Serial.println(F("Watchdog enabled (2s timeout)"));
+  }
+
   // Mode-specific initialization
   initializeForMode();
 
@@ -415,13 +427,42 @@ void setup() {
   next_idle_interval = random(config.idle_interval_min, config.idle_interval_max);
 
   system_ready = true;
-  Serial.println(F("System ready!"));
+  Serial.println(F("System ready! Press 'm' for menu, 'h' for help"));
 
   // Play ready sound
   if (sound_enabled) {
     delay(200);  // Short delay to ensure DFPlayer is ready
     playSound(SOUND_SYSTEM_READY);
   }
+}
+
+// ============================================================================
+// HELP COMMAND
+// ============================================================================
+
+void showHelp() {
+  Serial.println(F("\n=== CLI HELP (v3) ==="));
+  Serial.println(F("\nQuick Commands (available anytime):"));
+  Serial.println(F("  m - Open configuration menu"));
+  Serial.println(F("  h - Show this help (also: ?)"));
+  Serial.println(F("\nConfiguration Menu Options:"));
+  Serial.println(F("  1 - Setup Mode (PWM/iBus)"));
+  Serial.println(F("  2 - PID Configuration"));
+  Serial.println(F("  3 - Adaptive PID Settings"));
+  Serial.println(F("  4 - Driving Dynamics"));
+  Serial.println(F("  5 - Battery Settings"));
+  Serial.println(F("  6 - Sound Settings"));
+  Serial.println(F("  7 - Feature Toggles"));
+  Serial.println(F("  8 - IMU Calibration"));
+  Serial.println(F("  9 - Show Current Status"));
+  Serial.println(F("  m - Motor Test & Config"));
+  Serial.println(F("  i - IMU Axis Test (live angles)"));
+  Serial.println(F("  s - Save and Exit"));
+  Serial.println(F("  0 - Exit without Saving"));
+  Serial.println(F("\nStartup Commands (within 3 seconds):"));
+  Serial.println(F("  m - Enter configuration menu"));
+  Serial.println(F("  c - Run IMU calibration"));
+  Serial.println();
 }
 
 // ============================================================================
@@ -458,6 +499,9 @@ void loop() {
         wdt_enable(WDTO_2S);  // Re-enable after menu
       }
       emergency_stop = false;
+    } else if (cmd == 'h' || cmd == 'H' || cmd == '?') {
+      // Show help
+      showHelp();
     }
   }
 
@@ -922,8 +966,9 @@ void calculatePID() {
     target += (drive_input * config.max_lean_angle);
   }
 
-  // Calculate error
-  pid_error = total_angle[0] - target;
+  // Calculate error (apply IMU invert if configured)
+  float balance_angle = config.imu_invert ? -total_angle[0] : total_angle[0];
+  pid_error = balance_angle - target;
 
   // PID calculations using current (adaptive) values
   pid_p = current_kp * pid_error;
@@ -1009,11 +1054,42 @@ void updateMotors() {
   motor_speed_1 = constrain(abs(motor_speed_1), 0, 255);
   motor_speed_2 = constrain(abs(motor_speed_2), 0, 255);
 
+  // SAFETY: Tilt cutoff - stop motors if fallen over (>45 degrees)
+  // This prevents motor burnout from stalled motors
+  float tilt_angle = config.imu_invert ? -total_angle[0] : total_angle[0];
+  float current_tilt = abs(tilt_angle - config.target_angle);
+  if (current_tilt > 45.0) {
+    motor_speed_1 = 0;
+    motor_speed_2 = 0;
+    if (!emergency_stop) {
+      Serial.println(F("TILT CUTOFF: Motors stopped (>45 degrees)"));
+      emergency_stop = true;
+    }
+  }
+
+  // Apply motor configuration (swap/invert)
+  int out_speed_1 = motor_speed_1;
+  int out_speed_2 = motor_speed_2;
+  bool out_dir_1 = dir1;
+  bool out_dir_2 = dir2;
+
+  // Swap motors if configured
+  if (config.motor_swap) {
+    out_speed_1 = motor_speed_2;
+    out_speed_2 = motor_speed_1;
+    out_dir_1 = dir2;
+    out_dir_2 = dir1;
+  }
+
+  // Invert directions if configured
+  if (config.motor1_invert) out_dir_1 = !out_dir_1;
+  if (config.motor2_invert) out_dir_2 = !out_dir_2;
+
   // Output to motors
-  digitalWrite(DIR1_PIN, dir1 ? HIGH : LOW);
-  analogWrite(PWM1_PIN, motor_speed_1);
-  digitalWrite(DIR2_PIN, dir2 ? HIGH : LOW);
-  analogWrite(PWM2_PIN, motor_speed_2);
+  digitalWrite(DIR1_PIN, out_dir_1 ? HIGH : LOW);
+  analogWrite(PWM1_PIN, out_speed_1);
+  digitalWrite(DIR2_PIN, out_dir_2 ? HIGH : LOW);
+  analogWrite(PWM2_PIN, out_speed_2);
 }
 
 // ============================================================================
@@ -1051,7 +1127,8 @@ void updateServos() {
 
   // Apply mainbar correction
   if (config.mainbar_correction) {
-    int actual_angle = total_angle[0] - config.target_angle;
+    float corrected_angle = config.imu_invert ? -total_angle[0] : total_angle[0];
+    int actual_angle = corrected_angle - config.target_angle;
     int correction = map(actual_angle, 40, -40, 1000, 2000) - RC_CENTER;
     mainbar_pos = constrain(mainbar_pos + correction, RC_MIN, RC_MAX);
   }
@@ -1189,8 +1266,9 @@ void performIdleServoMovement() {
 // ============================================================================
 
 void checkStateReactions() {
-  // Tilt warning
-  float tilt = abs(total_angle[0] - config.target_angle);
+  // Tilt warning (apply IMU invert if configured)
+  float angle_for_tilt = config.imu_invert ? -total_angle[0] : total_angle[0];
+  float tilt = abs(angle_for_tilt - config.target_angle);
 
   if (tilt > 15.0 && !tilt_warning_active) {
     if (millis() - last_tilt_warning > 5000) { // Prevent spam
@@ -1339,6 +1417,8 @@ void configurationMenu() {
     Serial.println(F("7. Feature Toggles"));
     Serial.println(F("8. IMU Calibration"));
     Serial.println(F("9. Show Current Status"));
+    Serial.println(F("m. Motor Test & Config"));
+    Serial.println(F("i. IMU Axis Test (live angles)"));
     Serial.println(F("s. Save and Exit"));
     Serial.println(F("0. Exit without Saving"));
     Serial.print(F("Select: "));
@@ -1359,6 +1439,10 @@ void configurationMenu() {
       case '7': configureFeatures(); break;
       case '8': runIMUCalibration(); break;
       case '9': showStatus(); break;
+      case 'm':
+      case 'M': motorTestMenu(); break;
+      case 'i':
+      case 'I': imuTestMenu(); break;
       case 's':
       case 'S':
         saveConfiguration();
@@ -1541,6 +1625,188 @@ void showStatus() {
   Serial.println(motor_speed_2);
 }
 
+void motorTestMenu() {
+  Serial.println(F("\n=== MOTOR TEST & CONFIGURATION ==="));
+  Serial.println(F("WARNING: D-O should be on a stand or held safely!"));
+  Serial.println(F("Motors will spin during testing!\n"));
+
+  while (true) {
+    Serial.println(F("\nCurrent Motor Configuration:"));
+    Serial.print(F("  Motor Swap (L<->R): ")); Serial.println(config.motor_swap ? F("YES") : F("NO"));
+    Serial.print(F("  Motor 1 Invert:     ")); Serial.println(config.motor1_invert ? F("YES") : F("NO"));
+    Serial.print(F("  Motor 2 Invert:     ")); Serial.println(config.motor2_invert ? F("YES") : F("NO"));
+
+    Serial.println(F("\nOptions:"));
+    Serial.println(F("1. Test Motor 1 (Left) - Forward"));
+    Serial.println(F("2. Test Motor 2 (Right) - Forward"));
+    Serial.println(F("3. Test Both Motors - Forward"));
+    Serial.println(F("4. Test Both Motors - Backward"));
+    Serial.println(F("S. Toggle Motor Swap (Left<->Right)"));
+    Serial.println(F("A. Toggle Motor 1 Invert"));
+    Serial.println(F("B. Toggle Motor 2 Invert"));
+    Serial.println(F("X. Exit Motor Test"));
+    Serial.print(F("\nSelect: "));
+
+    while (!Serial.available()) delay(10);
+    char choice = Serial.read();
+    while (Serial.available()) Serial.read();
+    Serial.println(choice);
+
+    // Stop motors before each action
+    analogWrite(PWM1_PIN, 0);
+    analogWrite(PWM2_PIN, 0);
+
+    switch (choice) {
+      case '1': // Test Motor 1
+        Serial.println(F("Motor 1 (Left) running FORWARD for 2 seconds..."));
+        digitalWrite(DIR1_PIN, config.motor1_invert ? LOW : HIGH);
+        analogWrite(PWM1_PIN, 150);
+        delay(2000);
+        analogWrite(PWM1_PIN, 0);
+        Serial.println(F("Done. Did the LEFT wheel spin FORWARD?"));
+        Serial.println(F("If not: Try 'S' to swap or 'A' to invert"));
+        break;
+
+      case '2': // Test Motor 2
+        Serial.println(F("Motor 2 (Right) running FORWARD for 2 seconds..."));
+        digitalWrite(DIR2_PIN, config.motor2_invert ? LOW : HIGH);
+        analogWrite(PWM2_PIN, 150);
+        delay(2000);
+        analogWrite(PWM2_PIN, 0);
+        Serial.println(F("Done. Did the RIGHT wheel spin FORWARD?"));
+        Serial.println(F("If not: Try 'S' to swap or 'B' to invert"));
+        break;
+
+      case '3': // Both Forward
+        Serial.println(F("Both motors running FORWARD for 2 seconds..."));
+        digitalWrite(DIR1_PIN, config.motor1_invert ? LOW : HIGH);
+        digitalWrite(DIR2_PIN, config.motor2_invert ? LOW : HIGH);
+        analogWrite(PWM1_PIN, 150);
+        analogWrite(PWM2_PIN, 150);
+        delay(2000);
+        analogWrite(PWM1_PIN, 0);
+        analogWrite(PWM2_PIN, 0);
+        Serial.println(F("Done. Both wheels should have spun FORWARD."));
+        break;
+
+      case '4': // Both Backward
+        Serial.println(F("Both motors running BACKWARD for 2 seconds..."));
+        digitalWrite(DIR1_PIN, config.motor1_invert ? HIGH : LOW);
+        digitalWrite(DIR2_PIN, config.motor2_invert ? HIGH : LOW);
+        analogWrite(PWM1_PIN, 150);
+        analogWrite(PWM2_PIN, 150);
+        delay(2000);
+        analogWrite(PWM1_PIN, 0);
+        analogWrite(PWM2_PIN, 0);
+        Serial.println(F("Done. Both wheels should have spun BACKWARD."));
+        break;
+
+      case 'S':
+      case 's':
+        config.motor_swap = !config.motor_swap;
+        Serial.print(F("Motor Swap: ")); Serial.println(config.motor_swap ? F("ENABLED") : F("DISABLED"));
+        break;
+
+      case 'A':
+      case 'a':
+        config.motor1_invert = !config.motor1_invert;
+        Serial.print(F("Motor 1 Invert: ")); Serial.println(config.motor1_invert ? F("ENABLED") : F("DISABLED"));
+        break;
+
+      case 'B':
+      case 'b':
+        config.motor2_invert = !config.motor2_invert;
+        Serial.print(F("Motor 2 Invert: ")); Serial.println(config.motor2_invert ? F("ENABLED") : F("DISABLED"));
+        break;
+
+      case 'X':
+      case 'x':
+        Serial.println(F("Exiting Motor Test..."));
+        Serial.println(F("Remember to SAVE configuration in main menu!"));
+        return;
+
+      default:
+        Serial.println(F("Invalid option"));
+    }
+  }
+}
+
+void imuTestMenu() {
+  Serial.println(F("\n=== IMU AXIS TEST ==="));
+  Serial.println(F("Angle[0] is used for balancing (front/back tilt)."));
+  Serial.println(F("\nExpected behavior when tilting D-O:"));
+  Serial.println(F("  FORWARD (nose down) -> Angle[0] should INCREASE"));
+  Serial.println(F("  BACKWARD (nose up)  -> Angle[0] should DECREASE"));
+  Serial.println(F("\nIf it's reversed: Press 'F' to flip/invert the axis"));
+
+  while (true) {
+    Serial.println(F("\n----------------------------------------"));
+    Serial.print(F("IMU Axis Invert: "));
+    Serial.println(config.imu_invert ? F("ON (front/back FLIPPED)") : F("OFF (normal)"));
+    Serial.println(F("----------------------------------------"));
+    Serial.println(F("\nOptions:"));
+    Serial.println(F("T. Start live angle Test"));
+    Serial.println(F("F. Flip/Toggle IMU axis invert"));
+    Serial.println(F("X. Exit IMU Test"));
+    Serial.print(F("\nSelect: "));
+
+    while (!Serial.available()) delay(10);
+    char choice = Serial.read();
+    while (Serial.available()) Serial.read();
+    Serial.println(choice);
+
+    switch (choice) {
+      case 'T':
+      case 't':
+        Serial.println(F("\nLive IMU data - press any key to stop...\n"));
+        delay(300);
+        while (Serial.available()) Serial.read();
+        {
+          unsigned long last_print = 0;
+          while (!Serial.available()) {
+            updateIMUReadings();
+            if (millis() - last_print > 200) {
+              float displayed_angle = config.imu_invert ? -total_angle[0] : total_angle[0];
+              Serial.print(F("Balance Angle: "));
+              if (displayed_angle >= 0) Serial.print(F(" "));
+              Serial.print(displayed_angle, 1);
+              Serial.print(F("°"));
+              if (config.imu_invert) Serial.print(F(" [INV]"));
+              Serial.print(F("   Raw: "));
+              Serial.print(total_angle[0], 1);
+              Serial.print(F("°   Accel: X="));
+              Serial.print(acc_x);
+              Serial.print(F(" Y="));
+              Serial.print(acc_y);
+              Serial.print(F(" Z="));
+              Serial.println(acc_z);
+              last_print = millis();
+            }
+          }
+          while (Serial.available()) Serial.read();
+        }
+        Serial.println(F("\nTest stopped."));
+        break;
+
+      case 'F':
+      case 'f':
+        config.imu_invert = !config.imu_invert;
+        Serial.print(F("IMU Axis Invert: "));
+        Serial.println(config.imu_invert ? F("ON - Front/back FLIPPED") : F("OFF - Normal"));
+        Serial.println(F("Remember to SAVE in main menu!"));
+        break;
+
+      case 'X':
+      case 'x':
+        Serial.println(F("Exiting IMU Test..."));
+        return;
+
+      default:
+        Serial.println(F("Invalid option"));
+    }
+  }
+}
+
 // Helper functions
 float getFloatInput(const __FlashStringHelper* prompt, float current, float min, float max) {
   Serial.print(prompt);
@@ -1604,5 +1870,5 @@ void saveConfiguration() {
 }
 
 // ============================================================================
-// End of D-O Universal Controller v3.3.0
+// End of D-O Universal Controller v3.3.5
 // ============================================================================

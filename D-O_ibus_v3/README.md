@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - Universal Controller v3
 
-![Version](https://img.shields.io/badge/version-3.3.1-blue.svg)
+![Version](https://img.shields.io/badge/version-3.3.6-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -55,6 +55,53 @@ Designed for builders who want the most advanced and reliable D-O control system
 ---
 
 ## 📝 Changelog
+
+### Version 3.3.6 (December 2025)
+
+**CLI Help Command**
+
+- **Help Function** (`h` or `?`): Shows all available CLI commands
+  - Quick commands overview (m = menu, h = help)
+  - Full menu structure with all options
+  - Startup commands (m = menu, c = calibration)
+
+---
+
+### Version 3.3.5 (December 2025)
+
+**IMU Axis Invert + Test & Safety Features**
+
+#### ✨ New Features
+
+- **IMU Axis Invert** (`F` in IMU test menu): Software fix for reversed IMU orientation
+  - No need to physically remount the IMU
+  - Toggle front/back direction via CLI
+  - Saved to EEPROM
+- **IMU Axis Test** (`i` in CLI): Live angle display to verify IMU orientation
+  - Shows Angle[0] (balance) and Angle[1] (side) in real-time
+  - Displays raw accelerometer values (X, Y, Z)
+  - Instructions to verify correct front/back tilt response
+  - Helps diagnose X/Y axis swap or wrong IMU mounting
+- **Motor Test Menu** (`m` in CLI): Test individual motors and configure wiring
+  - Test Motor 1 (Left) / Motor 2 (Right) individually
+  - Test both motors forward/backward
+  - Toggle motor swap (Left↔Right)
+  - Toggle motor direction inversion (per motor)
+  - Helps diagnose wiring issues that cause PID oscillation
+- **45° Tilt Safety Cutoff**: Motors automatically stop when droid falls over
+  - Prevents motor burnout from stalled motors
+  - Auto-resumes when droid is upright again
+
+---
+
+### Version 3.3.2 (December 2025)
+
+**Watchdog Fix & Safety Tilt Cutoff**
+
+- **Fixed watchdog reset loop**: Watchdog now enables AFTER menu wait (was causing continuous resets)
+- Added 45° tilt angle safety cutoff to prevent motor damage
+
+---
 
 ### Version 3.3.1 (December 2025)
 
@@ -353,7 +400,8 @@ Connect via Serial Monitor at **9600 baud**.
 | Command | Description |
 |---------|-------------|
 | `m` | Open configuration menu |
-| `c` | Run IMU calibration |
+| `h` / `?` | Show help (all commands) |
+| `c` | Run IMU calibration (startup only) |
 
 ### Configuration Menu Access
 
@@ -377,6 +425,8 @@ Send `m` at any time to open the full configuration menu.
 7. Feature Toggles
 8. IMU Calibration
 9. Show Current Status
+m. Motor Test & Config
+i. IMU Axis Test (live angles)
 s. Save and Exit
 0. Exit without Saving
 ```
@@ -452,7 +502,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Universal Controller v3.3.1 ===
+   === D-O Universal Controller v3.3.6 ===
    Configuration loaded
    Setup Mode: iBus (Recommended)
    IMU found at 0x68
