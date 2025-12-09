@@ -1,0 +1,384 @@
+<h1>D-O Droid Control System v2.1 – Setup and Configuration Guide</h1>
+
+The D-O Droid control system version 2.1 is a complete all-in-one solution for Arduino Mega that handles self-balancing, sound control, servo control, and all RC functions.
+
+<h2 id="why-ibus">Why Choose iBus v2.1?</h2>
+
+The iBus v2.1 is a complete system that combines ALL functions into one Arduino Mega:
+
+<ul>
+<li>MPU6050/6500/9250/6886 IMU-based self-balancing with PID control</li>
+<li>10-channel iBus RC receiver support</li>
+<li>DFPlayer Mini sound system with personality features</li>
+<li>Multi-servo control for head and mainbar movement</li>
+<li>Battery monitoring with low voltage protection</li>
+<li>Runtime configuration menu via Serial</li>
+<li>Idle animations and state reactions</li>
+<li>RC Mixing Mode selection (Arcade/Tank)</li>
+</ul>
+
+<strong>One Mega does everything - no additional controllers needed!</strong>
+
+<h2 id="whats-new">What's New in v2.1</h2>
+
+<h3>1. Runtime Configuration Menu (Game Changer!)</h3>
+
+<strong>Old v1.1:</strong> Hard-coded values requiring recompilation
+<pre><code>float kp = 25;  // Change requires reupload
+float ki = 0;
+float kd = 0.8;</code></pre>
+
+<strong>New v2.1:</strong> Interactive serial menu
+<pre><code>=== CONFIGURATION MENU ===
+1. PID Configuration
+2. Feature Toggles
+3. Battery Settings
+4. Sound Settings
+5. Driving Dynamics
+6. Adaptive PID
+7. Save &amp; Exit</code></pre>
+
+<strong>Benefit:</strong> Tune your D-O without recompiling!
+
+<h3>2. RC Mixing Mode Selection (NEW in v2.1.2)</h3>
+
+<strong>Problem:</strong> With standard FlySky setup, forward/backward was slow but turning was fast.
+
+<strong>Solution:</strong> Arcade Mixing Mode (now default)
+
+<strong>ARCADE MODE (Default - Recommended):</strong>
+<ul>
+<li>CH1 (Right Stick Left/Right) = Steering</li>
+<li>CH2 (Right Stick Up/Down) = Throttle</li>
+<li>One stick controls everything - like a video game</li>
+</ul>
+
+<strong>TANK MODE (Original):</strong>
+<ul>
+<li>CH1 = Left Motor speed directly</li>
+<li>CH2 = Right Motor speed directly</li>
+<li>Requires custom transmitter mixing</li>
+</ul>
+
+<strong>How to change:</strong> CLI Menu → 5. Driving Dynamics → RC Mixing Mode
+
+<h3>3. Battery Monitoring (Optional)</h3>
+
+<div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 15px 0;">
+<strong>IMPORTANT:</strong> Battery monitoring is now OFF by default!
+
+<strong>Why?</strong> Without voltage divider circuit connected, pin A15 floats and shows random values (1.8V, 2.5V etc.)
+
+<strong>Enable only if:</strong> You have the voltage divider circuit properly connected.
+<strong>How to enable:</strong> CLI Menu → 2. Feature Toggles → Battery Monitor → ON
+</div>
+
+<h3>4. Adaptive PID Control</h3>
+
+Automatically adjusts PID parameters based on driving speed:
+<pre><code>// Slow speed: More stability
+if (avg_speed < 50) {
+    current_kp = config.kp_slow;
+}
+// Fast speed: More responsive
+else if (avg_speed > 150) {
+    current_kp = config.kp_fast;
+}</code></pre>
+
+<strong>Benefit:</strong> Better balance at all speeds without manual adjustment!
+
+<h2 id="hardware">Hardware Requirements</h2>
+
+<table>
+<thead>
+<tr><th>Component</th><th>Specification</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>Microcontroller</td><td>Arduino Mega 2560</td><td>Required for Serial1 iBus</td></tr>
+<tr><td>RC Receiver</td><td>FlySky FS-iA6B</td><td>iBus protocol required</td></tr>
+<tr><td>IMU</td><td>MPU6050</td><td>Also works: MPU6500, MPU9250, MPU6886</td></tr>
+<tr><td>Motor Driver</td><td>Cytron MD10C (2x)</td><td>Or similar H-bridge</td></tr>
+<tr><td>Sound Module</td><td>DFPlayer Mini</td><td>With Micro SD card</td></tr>
+<tr><td>Servos</td><td>4x Standard</td><td>Head (3x) + Mainbar (1x)</td></tr>
+<tr><td>Speaker</td><td>8 Ohm, &lt;3W</td><td>For DFPlayer</td></tr>
+<tr><td>Battery</td><td>2S+2S LiPo</td><td>7.4V - 8.4V</td></tr>
+</tbody>
+</table>
+
+<h2 id="wiring">Complete Wiring</h2>
+
+<h3>Mega → Motor Driver (Cytron MD10C)</h3>
+<pre><code>D13 → DIR1 (Motor 1 Direction)
+D12 → PWM1 (Motor 1 Speed)
+D11 → DIR2 (Motor 2 Direction)
+D10 → PWM2 (Motor 2 Speed)
+GND → GND (both drivers)
+
+Note: Motor power (VM) from battery, logic (VCC) from 5V</code></pre>
+
+<h3>Mega → Servos</h3>
+<pre><code>D2 → Mainbar Servo
+D3 → Head Servo 1 (Pitch)
+D4 → Head Servo 2 (Yaw)
+D5 → Head Servo 3 (Roll)
+
+WARNING: Servo power from BEC (5-6V), NOT from Mega!</code></pre>
+
+<h3>Mega → DFPlayer Mini</h3>
+<pre><code>D7 → RX (via 1k resistor!)
+D8 → TX
+5V → VCC
+GND → GND
+Speaker → SPK1/SPK2</code></pre>
+
+<h3>Mega → iBus Receiver</h3>
+<pre><code>D19 (RX1) → iBus Signal
+5V → VCC
+GND → GND</code></pre>
+
+<h3>Mega → MPU6050 IMU</h3>
+<pre><code>SDA (20) → SDA
+SCL (21) → SCL
+5V → VCC
+GND → GND</code></pre>
+
+<h3>Mega → Battery Monitor (OPTIONAL)</h3>
+<pre><code>Voltage Divider Circuit:
+Battery+ ──[10kΩ]──┬──[3.3kΩ]── GND
+                   │
+                   └── A15 (Mega)</code></pre>
+
+<h2 id="howto-setup">How To: First Time Setup</h2>
+
+<h3>Step 1: Upload Sketch</h3>
+<ol>
+<li>Open <code>D_O_printed_droid_rc_ibus_v2.1.ino</code> in Arduino IDE</li>
+<li>Select Board: <strong>Arduino Mega 2560</strong></li>
+<li>Select correct COM port</li>
+<li>Click Upload</li>
+<li>Open Serial Monitor (9600 baud)</li>
+</ol>
+
+<h3>Step 2: IMU Calibration (CRITICAL!)</h3>
+<ol>
+<li>Place D-O in balanced upright position</li>
+<li>Send <code>c</code> within 3 seconds of boot</li>
+<li>Keep D-O <strong>PERFECTLY STILL</strong> for 5 seconds</li>
+<li>Wait for "Calibration saved" message</li>
+</ol>
+
+<div style="background-color: #d4edda; padding: 15px; border-left: 4px solid #28a745; margin: 15px 0;">
+<strong>TIP:</strong> Always re-calibrate if:
+<ul>
+<li>Balance seems off</li>
+<li>You moved/remounted the IMU</li>
+<li>D-O keeps falling to one side</li>
+</ul>
+</div>
+
+<h3>Step 3: Select Setup Mode</h3>
+
+For new builds, use <strong>Pure iBus mode (2)</strong>:
+<pre><code>--- Setup Type Configuration ---
+0 = PWM Only (Balance only, external controller)
+1 = Hybrid (iBus + PWM sound)
+2 = Pure iBus (RECOMMENDED)</code></pre>
+
+<h2 id="howto-menu">How To: Use the Configuration Menu</h2>
+
+<h3>Accessing the Menu</h3>
+<ol>
+<li>Open Serial Monitor (9600 baud)</li>
+<li>Send <code>m</code></li>
+<li>Menu appears - enter number to select option</li>
+</ol>
+
+<h3>Example: Changing PID Values</h3>
+<pre><code>1. Send 'm' to open menu
+2. Send '1' for PID Configuration
+3. Enter new KP value (e.g. 28)
+4. Enter new KI value (e.g. 0)
+5. Enter new KD value (e.g. 1.2)
+6. Send '7' to Save &amp; Exit</code></pre>
+
+<h3>Example: Changing Mixing Mode</h3>
+<pre><code>1. Send 'm' to open menu
+2. Send '5' for Driving Dynamics
+3. Find "Mixing Mode" option
+4. Enter 1 for Arcade, 0 for Tank
+5. Send '7' to Save &amp; Exit</code></pre>
+
+<h3>Example: Enable Battery Monitoring</h3>
+<pre><code>1. Send 'm' to open menu
+2. Send '2' for Feature Toggles
+3. Find "Battery Monitor" option
+4. Enter 1 to enable
+5. Send '7' to Save &amp; Exit</code></pre>
+
+<h2 id="howto-rc">How To: Set Up FlySky Transmitter</h2>
+
+<h3>Channel Assignment (v2.1)</h3>
+
+<table>
+<thead>
+<tr><th>Channel</th><th>Function</th><th>Transmitter Setup</th></tr>
+</thead>
+<tbody>
+<tr><td>CH1</td><td>Steering</td><td>Right Stick Left/Right</td></tr>
+<tr><td>CH2</td><td>Throttle</td><td>Right Stick Up/Down</td></tr>
+<tr><td>CH3</td><td>Mainbar Servo</td><td>Assign to VrA or switch</td></tr>
+<tr><td>CH4</td><td>Head Pitch</td><td>Left Stick Up/Down</td></tr>
+<tr><td>CH5</td><td>Head Yaw</td><td>Left Stick Left/Right</td></tr>
+<tr><td>CH6</td><td>Head Roll</td><td>Assign to VrB</td></tr>
+<tr><td>CH7</td><td>Sound Mute</td><td>SwA (2-pos switch)</td></tr>
+<tr><td>CH8</td><td>Sound Trigger</td><td>SwB (momentary)</td></tr>
+<tr><td>CH9</td><td>Mood</td><td>SwC (3-pos switch)</td></tr>
+<tr><td>CH10</td><td>Squeak</td><td>VrA or VrB dial</td></tr>
+</tbody>
+</table>
+
+<div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 15px 0;">
+<strong>WICHTIG für CH3 (Mainbar):</strong> Standardmäßig ist CH3 bei FlySky nicht belegt! Du musst CH3 manuell einem Schalter oder Regler zuweisen, sonst reagiert der Mainbar-Servo nicht.
+</div>
+
+<h2 id="howto-sounds">How To: Set Up Sound Files</h2>
+
+<h3>SD Card Structure</h3>
+<pre><code>/mp3/
+  0001.mp3 - Startup sound
+  0002.mp3 - Default/ready sound
+  0003.mp3 - Greeting 1
+  0004.mp3 - Greeting 2
+  0005.mp3 - Greeting 3
+  0006.mp3 - Negative 1
+  0007.mp3 - Negative 2
+  0008.mp3 - Negative 3
+  0009.mp3 - Negative 4
+  0010.mp3 - Positive 1
+  0011.mp3 - Positive 2
+  0012.mp3 - Positive 3
+  0013.mp3 - Positive 4
+  0014.mp3 - Positive 5
+  0015.mp3 - Squeaky 1
+  0016.mp3 - Squeaky 2
+  0017.mp3 - Squeaky 3
+  0018.mp3 - Squeaky 4
+  0019.mp3 - Squeaky 5
+  0020.mp3 - Squeaky 6</code></pre>
+
+<strong>Requirements:</strong>
+<ul>
+<li>SD card: FAT16 or FAT32</li>
+<li>Filenames: Exactly 4 digits (0001.mp3, NOT 1.mp3)</li>
+<li>Format: MP3, 128-320 kbps</li>
+</ul>
+
+<h2 id="howto-pid">How To: Tune PID Values</h2>
+
+<h3>Understanding PID</h3>
+<ul>
+<li><strong>KP (Proportional):</strong> How hard to correct. Higher = more aggressive</li>
+<li><strong>KI (Integral):</strong> Corrects drift over time. Usually 0 or very low</li>
+<li><strong>KD (Derivative):</strong> Dampens oscillation. Prevents overshoot</li>
+</ul>
+
+<h3>Tuning Process</h3>
+<ol>
+<li>Start with defaults: KP=25, KI=0, KD=0.8</li>
+<li>If D-O oscillates rapidly: Decrease KP, increase KD</li>
+<li>If D-O is too wobbly/slow: Increase KP</li>
+<li>If D-O drifts slowly to one side: Small increase to KI</li>
+<li>Test after each change!</li>
+</ol>
+
+<div style="background-color: #d4edda; padding: 15px; border-left: 4px solid #28a745; margin: 15px 0;">
+<strong>TIP:</strong> Remove the head during PID tuning to prevent damage!
+</div>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<h3>"No DFPlayer found" / No Sound</h3>
+<ul>
+<li>Check 1k resistor between Mega TX (D7) and DFPlayer RX</li>
+<li>Verify SD card is FAT16/FAT32</li>
+<li>Files must be named 0001.mp3, 0002.mp3 etc.</li>
+<li>Try different SD card</li>
+</ul>
+
+<h3>Poor Balance / Tips Over</h3>
+<ul>
+<li>Run IMU calibration (<code>c</code> at boot)</li>
+<li>Check D-O was upright during calibration</li>
+<li>Verify both motors spin same direction for "forward"</li>
+<li>Try default PID: KP=25, KI=0, KD=0.8</li>
+</ul>
+
+<h3>No RC Response</h3>
+<ul>
+<li>iBus wire must be on Pin 19 (RX1)</li>
+<li>Check receiver binding (solid LED)</li>
+<li>Verify receiver has power</li>
+<li>Setup Mode must be 2 (Pure iBus)</li>
+</ul>
+
+<h3>Steering Fast, Driving Slow (or vice versa)</h3>
+<ul>
+<li>This is a Mixing Mode issue!</li>
+<li>Go to Menu → Driving Dynamics</li>
+<li>Set Mixing Mode to 1 (Arcade) for standard FlySky</li>
+</ul>
+
+<h3>Battery Shows Wrong Voltage</h3>
+<ul>
+<li>Without voltage divider = random values</li>
+<li>Either connect voltage divider circuit</li>
+<li>Or disable battery monitoring in menu</li>
+</ul>
+
+<h3>Mainbar Servo Not Moving</h3>
+<ul>
+<li>CH3 is not assigned by default on FlySky!</li>
+<li>Assign CH3 to a switch or dial on your transmitter</li>
+</ul>
+
+<h2 id="cli-reference">CLI Command Reference</h2>
+
+<table>
+<thead>
+<tr><th>Command</th><th>Function</th></tr>
+</thead>
+<tbody>
+<tr><td><code>c</code></td><td>IMU calibration (within 3s of boot)</td></tr>
+<tr><td><code>m</code></td><td>Open configuration menu</td></tr>
+<tr><td><code>d</code></td><td>Toggle debug output</td></tr>
+<tr><td><code>s</code></td><td>Show current sensor values</td></tr>
+<tr><td><code>r</code></td><td>Factory reset</td></tr>
+</tbody>
+</table>
+
+<h2 id="upgrade">Upgrading from v1.1</h2>
+
+<ol>
+<li>Upload v2.1 sketch</li>
+<li>Run IMU calibration (<code>c</code>)</li>
+<li>Open menu (<code>m</code>) and configure settings</li>
+<li>All settings are saved to EEPROM automatically</li>
+</ol>
+
+<h2 id="community">Community &amp; Support</h2>
+
+<p><strong>Website:</strong> <a href="https://www.printed-droid.com" target="_blank">www.printed-droid.com</a></p>
+<p><strong>Facebook:</strong> <a href="https://www.facebook.com/groups/printeddroid/" target="_blank">Printed Droid Community</a></p>
+
+<strong>For help, post in Facebook group with:</strong>
+<ul>
+<li>Version number (v2.1.2)</li>
+<li>What you've tried</li>
+<li>Serial Monitor output</li>
+<li>Photos/videos of wiring</li>
+</ul>
+
+<div style="text-align: center; padding: 20px; background-color: #f0f0f0; margin-top: 30px;">
+<h3>Remember: With iBus v2.1, one Mega does everything!</h3>
+<p><em>May the Force be with your D-O!</em></p>
+</div>
