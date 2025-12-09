@@ -263,13 +263,17 @@ v2.1 adds:
 
 **Pin-compatible!** No rewiring needed.
 
-### To v3.2.3
-v3.2.3 adds:
+### To v3.3.0
+v3.3.0 adds:
 - Simplified 2-mode system (PWM or iBus)
 - Watchdog timer
-- IMU error recovery
+- IMU error recovery and clone support
 - micros() timing for better PID
 - I2C Fast Mode (400kHz)
+- Idle animations (sounds and head movements)
+- Adaptive PID (speed-dependent tuning)
+- Dynamic lean angle
+- Configurable iBus baudrate
 
 **Pin-compatible!** No rewiring needed (v3.2.3+).
 

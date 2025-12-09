@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - Universal Controller
 
-![Version](https://img.shields.io/badge/version-3.2.3-blue.svg)
+![Version](https://img.shields.io/badge/version-3.3.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
@@ -24,6 +24,74 @@ This optimized Arduino sketch provides complete control over a self-balancing D-
 ---
 
 ## 📝 Changelog
+
+### Version 3.3.0 (December 2025)
+
+**Added Idle Animations, Adaptive PID, Dynamic Lean**
+
+This release brings feature parity with v2.1 while maintaining v3's advanced architecture.
+
+#### ✨ New Features
+
+**1. Idle Action System**
+- Random sounds and head movements when idle (no RC activity for 3+ seconds)
+- 70% chance of idle sounds (tracks 24-30)
+- 30% chance of servo animations (nod, look around, head shake)
+- Configurable intervals via CLI menu
+
+**2. Adaptive PID**
+- Speed-dependent PID tuning for optimal control
+- **Slow** (<50): Higher KP/KD for stability
+- **Medium** (50-150): Balanced values
+- **Fast** (>150): Lower KP/KD for smoothness
+- All values configurable via CLI
+
+**3. Dynamic Lean Angle**
+- Automatic forward lean based on drive input
+- Creates natural movement feel
+- Configurable max lean angle (default: 3°)
+
+**4. State-Based Reactions**
+- Tilt warning sound when angle exceeds 15°
+- Recovery sound when stabilized
+- Prevents audio spam with 5-second cooldown
+
+**5. Configurable iBus Baudrate**
+- 9600 baud (non-standard, for compatibility)
+- 115200 baud (standard iBus)
+- Selectable via CLI menu
+
+#### 🔧 Extended CLI Menu
+
+New menu options:
+- **3. Adaptive PID Settings** - Configure KP/KD for each speed tier
+- **4. Driving Dynamics** - Ramp rate, max lean, expo factor, deadband
+- **6. Sound Settings** - Now includes idle interval configuration
+- **7. Feature Toggles** - New toggles for all features
+- Setup Mode menu now includes baudrate option
+
+#### 🔊 New Sound Tracks
+
+| Track | Function |
+|-------|----------|
+| 0021.mp3 | Tilt warning |
+| 0022.mp3 | Recovery/relief |
+| 0024-0030.mp3 | Idle sounds |
+| 0031.mp3 | System ready |
+| 0032.mp3 | Signal lost |
+
+---
+
+### Version 3.2.4 (December 2025)
+
+**Robust IMU Clone Support**
+
+- Dynamic I2C address detection (0x68 or 0x69)
+- WHO_AM_I register check for chip identification
+- Support for MPU6050, MPU6500, MPU9250, MPU6886 clones
+- Improved error handling and byte validation in I2C reads
+
+---
 
 ### Version 3.2.3 (December 2025)
 
@@ -208,15 +276,21 @@ This update removes the unnecessary hybrid mode, simplifying the configuration.
 - ✅ **Interactive Configuration Menu** via Serial Monitor
 - ✅ **EEPROM Persistence** - all settings saved across reboots
 - ✅ **IMU Calibration** for precise balance control
+- ✅ **Robust IMU Clone Support** (MPU6050/6500/9250/6886)
 
-### Advanced Features
+### Advanced Features (v3.3.0+)
+- **Idle Action System** - Random sounds and head animations when idle
+- **Adaptive PID** - Speed-dependent tuning for optimal control
+- **Dynamic Lean Angle** - Forward lean based on drive input
+- **State-Based Reactions** - Tilt warnings and recovery sounds
+- **Configurable iBus Baudrate** - 9600 or 115200 baud
 - Motor ramping for smooth acceleration
 - Deadband and exponential RC input processing
 - Mainbar auto-correction based on tilt angle
-- Emergency stop on signal loss
-- Configurable PID parameters
-- Adjustable sound volume and intervals
-- Real-time status monitoring
+- Watchdog timer for crash recovery
+- micros() timing for precise PID
+- 400kHz I2C Fast Mode
+- Real-time loop frequency monitoring
 
 ---
 
@@ -393,11 +467,18 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
   0018.mp3 - Squeak 4
   0019.mp3 - Squeak 5
   0020.mp3 - Squeak 6
-  0021.mp3 - (Reserved for future use)
-  0022.mp3 - (Reserved for future use)
+  0021.mp3 - Tilt warning sound (NEW in v3.3.0)
+  0022.mp3 - Recovery/relief sound (NEW in v3.3.0)
   0023.mp3 - Battery warning
-  0024.mp3 - System ready (beep/chirp)
-  0025.mp3 - Signal lost warning
+  0024.mp3 - Idle sound 1 (NEW in v3.3.0)
+  0025.mp3 - Idle sound 2
+  0026.mp3 - Idle sound 3
+  0027.mp3 - Idle sound 4
+  0028.mp3 - Idle sound 5
+  0029.mp3 - Idle sound 6
+  0030.mp3 - Idle sound 7
+  0031.mp3 - System ready (beep/chirp)
+  0032.mp3 - Signal lost warning
 ```
 
 **Important:**
@@ -477,22 +558,22 @@ Connect all components according to the [Pin Configuration](#-pin-configuration)
 
 1. Setup Mode (PWM/iBus)
 2. PID Configuration
-3. Battery Settings
-4. Sound Settings
-5. Feature Toggles
-6. IMU Calibration
-7. Show Current Status
-8. Save and Exit
+3. Adaptive PID Settings
+4. Driving Dynamics
+5. Battery Settings
+6. Sound Settings
+7. Feature Toggles
+8. IMU Calibration
+9. Show Current Status
+s. Save and Exit
 0. Exit without Saving
 ```
 
-#### Change Setup Mode
+#### Change Setup Mode & Baudrate
 
 1. Select option `1`
-2. Choose mode:
-   - `0` = PWM Only
-   - `1` = iBus
-3. **Restart required!**
+2. Choose mode (`0` = PWM, `1` = iBus) or press `b` for baudrate
+3. **Restart required after changes!**
 
 #### Adjust PID Values
 
@@ -501,6 +582,7 @@ Connect all components according to the [Pin Configuration](#-pin-configuration)
 - KI: 0.0
 - KD: 0.8
 - Target Angle: -0.3
+- Max Integral: 400.0
 
 **Tuning:**
 1. Select option `2` in menu
@@ -512,6 +594,21 @@ Connect all components according to the [Pin Configuration](#-pin-configuration)
 - Sluggish response: Increase KP
 - Target Angle: Fine-tune balance (-1.0 to 1.0)
 
+#### Adaptive PID Settings (NEW)
+
+Configure speed-dependent PID values:
+- **Slow** (<50 speed): Default KP=25, KD=0.8
+- **Medium** (50-150): Default KP=20, KD=0.6
+- **Fast** (>150): Default KP=15, KD=0.4
+
+#### Driving Dynamics (NEW)
+
+- **Ramp Rate:** Motor acceleration smoothing (0.01-1.0)
+- **Max Acceleration:** Acceleration limit
+- **Max Lean Angle:** Forward lean when driving (0-10°)
+- **RC Deadband:** Ignore small stick movements
+- **Expo Factor:** Non-linear stick response (0-1)
+
 #### Battery Settings
 
 **Default values (2S LiPo):**
@@ -522,21 +619,29 @@ Connect all components according to the [Pin Configuration](#-pin-configuration)
 **Calibrate voltage divider:**
 1. Fully charge battery (8.4V)
 2. Measure voltage with multimeter
-3. Menu `3` → `Voltage Divider Factor`
+3. Menu `5` → `Voltage Divider Factor`
 4. Adjust until `Current battery reading` matches
 
 #### Sound Settings
 
 - **Volume:** 0-30 (default: 25)
 - **Min Sound Interval:** Minimum time between sounds in ms
+- **Min Idle Interval:** Minimum time between idle actions (NEW)
+- **Max Idle Interval:** Maximum time between idle actions (NEW)
 
 #### Feature Toggles
 
 Enable/disable:
 - Mainbar Auto-Correct (mainbar tilts with body)
 - Motor Ramping (smooth acceleration)
+- **Adaptive PID** (speed-dependent tuning) - NEW
+- **Dynamic Lean Angle** (forward lean when driving) - NEW
+- **Idle Actions** (random sounds/movements when idle) - NEW
+- **State Reactions** (tilt warnings, recovery sounds) - NEW
 - Battery Monitor (battery monitoring)
+- Battery Recovery (hysteresis for restart)
 - Servo Control (enable/disable servos)
+- Watchdog Timer (crash recovery)
 
 ---
 
