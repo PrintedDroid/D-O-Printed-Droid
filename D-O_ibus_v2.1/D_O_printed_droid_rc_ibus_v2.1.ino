@@ -2,7 +2,7 @@
  * PROJECT: D-O Self-Balancing Droid with iBus Control
  * ORIGINAL: Reinhard Stockinger 2020/11
  * ENHANCED: Optimized version from Printed-Droid.com
- * VERSION: 2.1.2 (Added RC Mixing Mode selection)
+ * VERSION: 2.1.3 (Added 45° tilt safety cutoff)
  * DATE:    December 2025
  * 
  * DESCRIPTION:
@@ -341,7 +341,7 @@ unsigned long startup_time = 0;
 void setup() {
   // Initialize serial
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1.2 ==="));
+  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1.3 ==="));
   
   // Load configuration from EEPROM
   loadConfiguration();
@@ -1096,7 +1096,19 @@ void updateMotors() {
   
   motor_speed_1 = constrain(abs(motor_speed_1), 0, 255);
   motor_speed_2 = constrain(abs(motor_speed_2), 0, 255);
-  
+
+  // SAFETY: Tilt cutoff - stop motors if fallen over (>45 degrees)
+  // This prevents motor burnout from stalled motors
+  float current_tilt = abs(total_angle[0] - config.target_angle);
+  if (current_tilt > 45.0) {
+    motor_speed_1 = 0;
+    motor_speed_2 = 0;
+    if (!emergency_stop_active) {
+      Serial.println(F("TILT CUTOFF: Motors stopped (>45 degrees)"));
+      emergency_stop_active = true;
+    }
+  }
+
   // Output to motors
   digitalWrite(DIR1_PIN, motor_direction_1);
   analogWrite(PWM1_PIN, motor_speed_1);
