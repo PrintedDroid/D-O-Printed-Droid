@@ -2,7 +2,7 @@
  * PROJECT: D-O Self-Balancing Droid with iBus Control
  * ORIGINAL: Reinhard Stockinger 2020/11
  * ENHANCED: Optimized version from Printed-Droid.com
- * VERSION: 2.1 (Added configurable iBus baudrate)
+ * VERSION: 2.1.1 (Added robust IMU handling for clones)
  * DATE:    December 2025
  * 
  * DESCRIPTION:
@@ -257,6 +257,9 @@ const int EEPROM_CONFIG_START = 0;
 #endif
 
 // IMU Variables
+uint8_t imu_address = 0x68;  // Default address, may change to 0x69 for some clones
+bool imu_found = false;
+uint8_t imu_type = 0;  // 0=unknown, 1=MPU6050, 2=MPU6500, 3=MPU9250
 int16_t acc_x, acc_y, acc_z;
 int16_t gyro_x, gyro_y, gyro_z;
 float accel_angle[2];
@@ -337,7 +340,7 @@ unsigned long startup_time = 0;
 void setup() {
   // Initialize serial
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1 ==="));
+  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1.1 ==="));
   
   // Load configuration from EEPROM
   loadConfiguration();
@@ -770,81 +773,186 @@ void saveConfiguration() {
 // IMU FUNCTIONS
 // ============================================================================
 
-void initializeIMU() {
+bool initializeIMU() {
+  Serial.println(F("Searching for IMU..."));
+
+  // Try primary address 0x68
   Wire.beginTransmission(0x68);
-  Wire.write(0x6B);
-  Wire.write(0);
+  if (Wire.endTransmission() == 0) {
+    imu_address = 0x68;
+    imu_found = true;
+    Serial.println(F("IMU found at 0x68"));
+  } else {
+    // Try alternate address 0x69 (AD0 pin high on some clones)
+    Wire.beginTransmission(0x69);
+    if (Wire.endTransmission() == 0) {
+      imu_address = 0x69;
+      imu_found = true;
+      Serial.println(F("IMU found at 0x69 (clone/alternate)"));
+    }
+  }
+
+  if (!imu_found) {
+    Serial.println(F("ERROR: No IMU found! Check wiring."));
+    return false;
+  }
+
+  // Read WHO_AM_I register to identify chip type
+  Wire.beginTransmission(imu_address);
+  Wire.write(0x75);  // WHO_AM_I register
+  Wire.endTransmission(false);
+  Wire.requestFrom(imu_address, (uint8_t)1);
+  uint8_t who_am_i = Wire.read();
+
+  Serial.print(F("WHO_AM_I: 0x"));
+  Serial.print(who_am_i, HEX);
+
+  switch (who_am_i) {
+    case 0x68:
+      imu_type = 1;
+      Serial.println(F(" (MPU6050)"));
+      break;
+    case 0x70:
+      imu_type = 2;
+      Serial.println(F(" (MPU6500)"));
+      break;
+    case 0x71:
+      imu_type = 3;
+      Serial.println(F(" (MPU9250)"));
+      break;
+    case 0x19:
+      imu_type = 4;
+      Serial.println(F(" (MPU6886)"));
+      break;
+    default:
+      imu_type = 0;
+      Serial.println(F(" (Unknown - trying anyway)"));
+      break;
+  }
+
+  // Wake up IMU (clear sleep bit)
+  Wire.beginTransmission(imu_address);
+  Wire.write(0x6B);  // PWR_MGMT_1 register
+  Wire.write(0x00);  // Clear sleep bit
   Wire.endTransmission(true);
-  
-  Wire.beginTransmission(0x68);
-  Wire.write(0x1B);
-  Wire.write(0x00);
+  delay(100);  // Wait for wake up
+
+  // Configure Gyroscope (±250°/s)
+  Wire.beginTransmission(imu_address);
+  Wire.write(0x1B);  // GYRO_CONFIG register
+  Wire.write(0x00);  // FS_SEL = 0 (±250°/s)
   Wire.endTransmission(true);
-  
-  Wire.beginTransmission(0x68);
-  Wire.write(0x1C);
-  Wire.write(0x00);
+
+  // Configure Accelerometer (±2g)
+  Wire.beginTransmission(imu_address);
+  Wire.write(0x1C);  // ACCEL_CONFIG register
+  Wire.write(0x00);  // AFS_SEL = 0 (±2g)
   Wire.endTransmission(true);
+
+  // Verify IMU is responding with valid data
+  delay(50);
+  Wire.beginTransmission(imu_address);
+  Wire.write(0x3B);
+  Wire.endTransmission(false);
+  uint8_t bytes_received = Wire.requestFrom(imu_address, (uint8_t)6);
+
+  if (bytes_received != 6) {
+    Serial.println(F("ERROR: IMU not responding properly!"));
+    imu_found = false;
+    return false;
+  }
+
+  // Flush the buffer
+  while (Wire.available()) Wire.read();
+
+  Serial.println(F("IMU initialized successfully"));
+  return true;
 }
 
 void updateIMUReadings() {
-  Wire.beginTransmission(0x68);
+  if (!imu_found) return;  // Skip if no IMU
+
+  // Read accelerometer data
+  Wire.beginTransmission(imu_address);
   Wire.write(0x3B);
   Wire.endTransmission(false);
-  Wire.requestFrom(0x68, 6, true);
-  
+  uint8_t bytes = Wire.requestFrom(imu_address, (uint8_t)6, (uint8_t)true);
+
+  if (bytes != 6) {
+    // IMU read failed - skip this cycle
+    return;
+  }
+
   acc_x = (Wire.read() << 8 | Wire.read()) - config.accel_x_offset;
   acc_y = (Wire.read() << 8 | Wire.read()) - config.accel_y_offset;
   acc_z = (Wire.read() << 8 | Wire.read()) - config.accel_z_offset;
-  
-  accel_angle[0] = atan(acc_y / sqrt(pow(acc_x, 2) + pow(acc_z, 2))) * 180 / PI;
-  accel_angle[1] = atan(-1 * acc_x / sqrt(pow(acc_y, 2) + pow(acc_z, 2))) * 180 / PI;
-  
-  Wire.beginTransmission(0x68);
+
+  // Use direct multiplication instead of pow() for better performance
+  float acc_x_sq = (float)acc_x * acc_x;
+  float acc_y_sq = (float)acc_y * acc_y;
+  float acc_z_sq = (float)acc_z * acc_z;
+
+  accel_angle[0] = atan(acc_y / sqrt(acc_x_sq + acc_z_sq)) * 180 / PI;
+  accel_angle[1] = atan(-1 * acc_x / sqrt(acc_y_sq + acc_z_sq)) * 180 / PI;
+
+  // Read gyroscope data
+  Wire.beginTransmission(imu_address);
   Wire.write(0x43);
   Wire.endTransmission(false);
-  Wire.requestFrom(0x68, 6, true);
-  
+  bytes = Wire.requestFrom(imu_address, (uint8_t)6, (uint8_t)true);
+
+  if (bytes != 6) {
+    // IMU read failed - skip this cycle
+    return;
+  }
+
   gyro_x = (Wire.read() << 8 | Wire.read()) - config.gyro_x_offset;
   gyro_y = (Wire.read() << 8 | Wire.read()) - config.gyro_y_offset;
   gyro_z = (Wire.read() << 8 | Wire.read()) - config.gyro_z_offset;
-  
+
   gyro_angle[0] = gyro_x / 131.0;
   gyro_angle[1] = gyro_y / 131.0;
-  
+
+  // Complementary filter
   total_angle[0] = 0.98 * (total_angle[0] + gyro_angle[0] * elapsed_time) + 0.02 * accel_angle[0];
   total_angle[1] = 0.98 * (total_angle[1] + gyro_angle[1] * elapsed_time) + 0.02 * accel_angle[1];
 }
 
 void runIMUCalibration() {
   Serial.println(F("\n=== IMU CALIBRATION ==="));
+
+  if (!imu_found) {
+    Serial.println(F("ERROR: No IMU found! Run IMU init first."));
+    return;
+  }
+
   Serial.println(F("Place robot in balanced position and keep STILL!"));
   Serial.println(F("Starting in 3 seconds..."));
   delay(3000);
-  
+
   Serial.println(F("Calibrating..."));
-  
+
   config.accel_x_offset = 0;
   config.accel_y_offset = 0;
   config.accel_z_offset = 0;
   config.gyro_x_offset = 0;
   config.gyro_y_offset = 0;
   config.gyro_z_offset = 0;
-  
+
   long ax_sum = 0, ay_sum = 0, az_sum = 0;
   long gx_sum = 0, gy_sum = 0, gz_sum = 0;
   const int samples = 1000;
-  
+
   for (int i = 0; i < samples; i++) {
-    Wire.beginTransmission(0x68);
+    Wire.beginTransmission(imu_address);
     Wire.write(0x3B);
     Wire.endTransmission(false);
-    Wire.requestFrom(0x68, 14, true);
-    
+    Wire.requestFrom(imu_address, (uint8_t)14, (uint8_t)true);
+
     int16_t ax = Wire.read() << 8 | Wire.read();
     int16_t ay = Wire.read() << 8 | Wire.read();
     int16_t az = Wire.read() << 8 | Wire.read();
-    Wire.read(); Wire.read();
+    Wire.read(); Wire.read();  // Skip temperature
     int16_t gx = Wire.read() << 8 | Wire.read();
     int16_t gy = Wire.read() << 8 | Wire.read();
     int16_t gz = Wire.read() << 8 | Wire.read();
