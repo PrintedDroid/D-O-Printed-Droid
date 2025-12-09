@@ -1,6 +1,6 @@
 /********************************************************************************
  * PROJECT: D-O Self-Balancing Droid - Universal Controller
- * VERSION: 3.3.1 (Added RC Mixing Mode selection)
+ * VERSION: 3.3.2 (Fixed watchdog timing, added 45° tilt safety cutoff)
  * DATE:    December 2025
  *
  * DESCRIPTION:
@@ -347,7 +347,7 @@ unsigned long last_freq_print = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Universal Controller v3.3.1 ==="));
+  Serial.println(F("\n=== D-O Universal Controller v3.3.2 ==="));
 
   // Load configuration
   loadConfiguration();
@@ -357,11 +357,8 @@ void setup() {
   current_ki = config.ki;
   current_kd = config.kd;
 
-  // Enable Watchdog Timer (2 second timeout)
-  if (config.watchdog_enabled) {
-    wdt_enable(WDTO_2S);
-    Serial.println(F("Watchdog enabled (2s timeout)"));
-  }
+  // NOTE: Watchdog is enabled AFTER menu wait to prevent reset loop
+  // (menu wait is 3 seconds, watchdog timeout is 2 seconds)
 
   // Initialize I2C and IMU
   Wire.begin();
@@ -398,6 +395,13 @@ void setup() {
         }
       }
     }
+  }
+
+  // Enable Watchdog Timer AFTER menu wait (2 second timeout)
+  // This prevents reset loop since menu wait is 3 seconds
+  if (config.watchdog_enabled) {
+    wdt_enable(WDTO_2S);
+    Serial.println(F("Watchdog enabled (2s timeout)"));
   }
 
   // Mode-specific initialization
@@ -1008,6 +1012,18 @@ void updateMotors() {
 
   motor_speed_1 = constrain(abs(motor_speed_1), 0, 255);
   motor_speed_2 = constrain(abs(motor_speed_2), 0, 255);
+
+  // SAFETY: Tilt cutoff - stop motors if fallen over (>45 degrees)
+  // This prevents motor burnout from stalled motors
+  float current_tilt = abs(total_angle[0] - config.target_angle);
+  if (current_tilt > 45.0) {
+    motor_speed_1 = 0;
+    motor_speed_2 = 0;
+    if (!emergency_stop) {
+      Serial.println(F("TILT CUTOFF: Motors stopped (>45 degrees)"));
+      emergency_stop = true;
+    }
+  }
 
   // Output to motors
   digitalWrite(DIR1_PIN, dir1 ? HIGH : LOW);
