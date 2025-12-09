@@ -2,7 +2,7 @@
  * PROJECT: D-O Self-Balancing Droid with iBus Control
  * ORIGINAL: Reinhard Stockinger 2020/11
  * ENHANCED: Optimized version from Printed-Droid.com
- * VERSION: 2.1.3 (Added 45° tilt safety cutoff)
+ * VERSION: 2.1.4 (Added motor test menu, 45° tilt safety cutoff)
  * DATE:    December 2025
  * 
  * DESCRIPTION:
@@ -346,7 +346,7 @@ unsigned long startup_time = 0;
 void setup() {
   // Initialize serial
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1.3 ==="));
+  Serial.println(F("\n=== D-O Self-Balancing Controller v2.1.4 ==="));
   
   // Load configuration from EEPROM
   loadConfiguration();

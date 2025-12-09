@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - Universal Controller v3
 
-![Version](https://img.shields.io/badge/version-3.3.1-blue.svg)
+![Version](https://img.shields.io/badge/version-3.3.3-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -55,6 +55,33 @@ Designed for builders who want the most advanced and reliable D-O control system
 ---
 
 ## 📝 Changelog
+
+### Version 3.3.3 (December 2025)
+
+**Motor Test & Configuration Menu + Safety Features**
+
+#### ✨ New Features
+
+- **Motor Test Menu** (`m` in CLI): Test individual motors and configure wiring
+  - Test Motor 1 (Left) / Motor 2 (Right) individually
+  - Test both motors forward/backward
+  - Toggle motor swap (Left↔Right)
+  - Toggle motor direction inversion (per motor)
+  - Helps diagnose wiring issues that cause PID oscillation
+- **45° Tilt Safety Cutoff**: Motors automatically stop when droid falls over
+  - Prevents motor burnout from stalled motors
+  - Auto-resumes when droid is upright again
+
+---
+
+### Version 3.3.2 (December 2025)
+
+**Watchdog Fix & Safety Tilt Cutoff**
+
+- **Fixed watchdog reset loop**: Watchdog now enables AFTER menu wait (was causing continuous resets)
+- Added 45° tilt angle safety cutoff to prevent motor damage
+
+---
 
 ### Version 3.3.1 (December 2025)
 
@@ -377,6 +404,7 @@ Send `m` at any time to open the full configuration menu.
 7. Feature Toggles
 8. IMU Calibration
 9. Show Current Status
+m. Motor Test & Config
 s. Save and Exit
 0. Exit without Saving
 ```
@@ -452,7 +480,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Universal Controller v3.3.1 ===
+   === D-O Universal Controller v3.3.3 ===
    Configuration loaded
    Setup Mode: iBus (Recommended)
    IMU found at 0x68
