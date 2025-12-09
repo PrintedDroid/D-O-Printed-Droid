@@ -2,23 +2,50 @@
 
 ![Version](https://img.shields.io/badge/version-2.1.2-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
-![License](https://img.shields.io/badge/license-MIT-orange.svg)
+![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
-**Complete control system for self-balancing D-O droid with iBus RC support and advanced features**
+**Advanced control system for self-balancing D-O droid replica from Star Wars**
 
-This Arduino sketch provides full control over a self-balancing D-O droid (from Star Wars) with three setup modes, integrated sound system, and extensive configuration options.
+---
+
+## 🤖 Project Overview
+
+This enhanced Arduino sketch provides complete control over a self-balancing D-O droid with three flexible setup modes, interactive configuration menu, EEPROM persistence, and extensive customization options.
+
+Built on the proven v1.1 foundation with significant feature additions for builders who want full configurability without code modifications.
+
+### Key Features
+
+- **🎯 MPU6050 IMU Self-Balancing** - Advanced PID control with adaptive tuning
+- **📡 Three Setup Modes** - PWM Only, Hybrid, or Pure iBus
+- **⚙️ Interactive CLI Menu** - Configure all settings via Serial Monitor
+- **💾 EEPROM Persistence** - All settings saved across reboots
+- **🔋 Battery Monitoring** - Low voltage protection and warnings
+- **🎮 RC Mixing Modes** - Arcade (recommended) or Tank style control
+- **🎭 Idle Animations** - Random sounds and head movements when idle
+- **📈 Adaptive PID** - Speed-dependent PID tuning for optimal control
+- **🔊 DFPlayer Sound System** - 30+ sound effects with personality features
+- **✅ IMU Clone Support** - Works with MPU6050/6500/9250/6886
+
+---
 
 ## 📋 Table of Contents
 
 - [Changelog](#-changelog)
-- [Features](#-features)
 - [Hardware Requirements](#-hardware-requirements)
 - [Setup Modes](#-setup-modes)
 - [Pin Configuration](#-pin-configuration)
+- [iBus Channel Mapping](#-ibus-channel-mapping)
+- [RC Mixing Modes](#-rc-mixing-modes)
 - [Installation](#-installation)
+- [Serial Commands (CLI)](#-serial-commands-cli)
 - [Configuration Menu](#-configuration-menu)
+- [SD Card File Structure](#-sd-card-file-structure)
 - [Usage](#-usage)
 - [Troubleshooting](#-troubleshooting)
+- [Safety & Disclaimer](#-safety--disclaimer)
+- [Community & Support](#-community--support)
+- [License](#-license)
 - [Credits](#-credits)
 
 ---
@@ -62,11 +89,11 @@ This fixes the issue where forward/backward driving was much slower than turning
 
 ---
 
-### Version 2.1 (December 2025)
+### Version 2.1.0 (December 2025)
 
 **Configurable iBus Baudrate & Critical Bug Fixes**
 
-#### 🔧 Critical Fixes
+#### 🐛 Critical Fixes
 
 **1. Missing `#define IBUS_ENABLED`**
 - **Problem**: iBus was never initialized because the define was missing
@@ -85,18 +112,9 @@ This fixes the issue where forward/backward driving was much slower than turning
 - Configurable via Serial Monitor menu
 - Saved to EEPROM
 
-**How to change baudrate:**
-1. Open Serial Monitor (9600 baud)
-2. Send `m` → Configuration Menu
-3. Select `8` → Setup Type
-4. Press `b` → Change iBus baudrate
-5. Select `1` (9600) or `2` (115200)
-6. Select `9` → Save and Exit
-7. Restart Arduino
-
 ---
 
-### Version 2.0 (June 2025)
+### Version 2.0.0 (June 2025)
 
 **Full Feature Set with Configuration Menu**
 
@@ -113,54 +131,42 @@ This fixes the issue where forward/backward driving was much slower than turning
 
 ---
 
-## 🎯 Features
-
-### Core Capabilities
-- ✅ **MPU6050 IMU Self-Balancing** with advanced PID control
-- ✅ **Robust IMU Clone Support** (MPU6050/6500/9250/6886)
-- ✅ **Three Setup Modes**: PWM Only, Hybrid, or Pure iBus
-- ✅ **Configurable iBus Baudrate** (9600 or 115200)
-- ✅ **Integrated DFPlayer Sound System** with personality features
-- ✅ **Multi-Servo Control** for head and mainbar movement
-- ✅ **Battery Monitoring** with low voltage protection
-- ✅ **Interactive Configuration Menu** via Serial Monitor
-- ✅ **EEPROM Persistence** - all settings saved across reboots
-- ✅ **IMU Calibration** for precise balance control
-
-### Advanced Features
-- Motor ramping for smooth acceleration
-- Adaptive PID (adjusts based on speed)
-- Dynamic target angle (leans into movement)
-- Idle action system (random animations when idle)
-- State-based reactions (tilt warnings, recovery sounds)
-- Deadband and exponential RC input processing
-- Mainbar auto-correction based on tilt angle
-- Turn rate compensation
-- Emergency stop on signal loss
-
----
-
 ## 🔧 Hardware Requirements
 
 ### Core Components
 
 | Component | Specification | Notes |
 |-----------|--------------|-------|
-| **Microcontroller** | Arduino Mega 2560 | Required for Serial1 |
-| **IMU** | MPU6050 | I2C address 0x68 |
-| **Motor Driver** | Cytron MD10C or similar | 2x for differential drive |
-| **Sound Module** | DFPlayer Mini | With Micro SD card |
-| **RC Receiver** | iBus-compatible OR PWM | FlySky recommended |
-| **Servos** | 4x Standard Servos | For head and mainbar |
+| **Microcontroller** | Arduino Mega 2560 | Required for Serial1 (iBus) |
+| **IMU** | MPU6050 or compatible | I2C address 0x68 or 0x69 |
+| **Motor Driver** | Cytron MD10C (2x) | Or similar dual H-bridge |
+| **Sound Module** | DFPlayer Mini | With Micro SD card (FAT32) |
+| **RC Receiver** | iBus-compatible or PWM | FlySky FS-iA6B recommended |
+| **Servos** | 4x Standard Servos | SG90 or similar |
 | **Battery** | 2x 2S LiPo in series | 8.4V full, 6.0V empty |
-| **Voltage Divider** | 10kΩ + 3.3kΩ | For battery monitoring on A15 |
-| **Speaker** | 8 Ohm, <3W | For DFPlayer |
+| **Voltage Divider** | 10kΩ + 3.3kΩ resistors | For battery monitoring on A15 |
+| **Speaker** | 8 Ohm, <3W | For DFPlayer audio output |
+
+### Power Requirements
+
+| Component | Voltage | Current |
+|-----------|---------|---------|
+| Arduino Mega | 7-12V | 200mA |
+| Motors (2x) | Battery voltage | 1-2A each (stall) |
+| Servos (4x) | 5-6V | 500mA total |
+| DFPlayer | 3.3-5V | 200mA |
+
+### Optional Components
+
+- 1kΩ resistor for DFPlayer TX line (recommended)
+- 100µF capacitor on battery input (noise reduction)
 
 ---
 
 ## 🔀 Setup Modes
 
 ### Mode 0: PWM Only (Original)
+
 **Best for:** Balance only, external Nano handles sound
 
 - PWM input on pins 3, 4 for drive (tank-mixed)
@@ -168,6 +174,7 @@ This fixes the issue where forward/backward driving was much slower than turning
 - Compatible with original D-O v2 Mega sketch
 
 ### Mode 1: Hybrid
+
 **Best for:** iBus drive with PWM sound switches
 
 - iBus for drive channels (CH1-6)
@@ -175,6 +182,7 @@ This fixes the issue where forward/backward driving was much slower than turning
 - Good for mixed setups
 
 ### Mode 2: Pure iBus (Default, Recommended)
+
 **Best for:** New installations with iBus receivers
 
 - All 10 channels via iBus protocol
@@ -186,57 +194,47 @@ This fixes the issue where forward/backward driving was much slower than turning
 
 ## 📍 Pin Configuration
 
-### Motors (All Modes)
+### Complete Pin Assignment
+
 ```
-Pin 13 → Motor 1 Direction (DIR1)
-Pin 12 → Motor 1 Speed (PWM1)
-Pin 11 → Motor 2 Direction (DIR2)
-Pin 10 → Motor 2 Speed (PWM2)
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                      ARDUINO MEGA 2560 PIN ASSIGNMENT                        │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  Pin  │ Function           │ Direction │ Notes                              │
+├───────┼────────────────────┼───────────┼────────────────────────────────────┤
+│    0  │ Mainbar Servo      │ OUTPUT    │ PWM servo control                  │
+│    1  │ Head Servo 1       │ OUTPUT    │ PWM servo control (Pitch)          │
+│    3  │ PWM Drive 1        │ INPUT     │ Mode 0 only                        │
+│    4  │ PWM Drive 2        │ INPUT     │ Mode 0 only                        │
+│    5  │ Head Servo 2       │ OUTPUT    │ PWM servo control (Yaw)            │
+│    6  │ Head Servo 3       │ OUTPUT    │ PWM servo control (Roll)           │
+│    7  │ DFPlayer RX        │ OUTPUT    │ SoftwareSerial TX → DFPlayer       │
+│    8  │ DFPlayer TX        │ INPUT     │ SoftwareSerial RX ← DFPlayer       │
+│   10  │ Motor 2 PWM        │ OUTPUT    │ Motor speed                        │
+│   11  │ Motor 2 DIR        │ OUTPUT    │ Motor direction                    │
+│   12  │ Motor 1 PWM        │ OUTPUT    │ Motor speed                        │
+│   13  │ Motor 1 DIR        │ OUTPUT    │ Motor direction                    │
+│   14  │ Sound Switch 1     │ INPUT     │ Mode 0/1 - Mute (A0)               │
+│   15  │ Sound Switch 2     │ INPUT     │ Mode 0/1 - Mode (A1)               │
+│   16  │ Sound Switch 3     │ INPUT     │ Mode 0/1 - Mood (A2)               │
+│   17  │ Sound Switch 4     │ INPUT     │ Mode 0/1 - Squeak (A3)             │
+│   19  │ iBus RX            │ INPUT     │ Serial1 RX - Mode 1/2              │
+│   20  │ I2C SDA            │ I/O       │ MPU6050 data                       │
+│   21  │ I2C SCL            │ OUTPUT    │ MPU6050 clock                      │
+│  A15  │ Battery Voltage    │ INPUT     │ Via voltage divider                │
+└───────┴────────────────────┴───────────┴────────────────────────────────────┘
 ```
 
-### Servos (All Modes)
-```
-Pin 0 → Mainbar Servo
-Pin 1 → Head Servo 1
-Pin 5 → Head Servo 2
-Pin 6 → Head Servo 3
-```
+### Battery Voltage Divider
 
-### DFPlayer Mini (All Modes)
 ```
-Pin 7 → DFPlayer RX
-Pin 8 → DFPlayer TX
-```
+Battery (+) ──┬── 10kΩ ──┬── 3.3kΩ ──┬── GND
+              │          │           │
+              │          └── A15     │
+              │                      │
+Battery (-) ──┴──────────────────────┘
 
-### Mode 0: PWM Only
-```
-Pin 3 → Drive Channel 1 (PWM)
-Pin 4 → Drive Channel 2 (PWM)
-```
-
-### Mode 1: Hybrid
-```
-Pin 19 (Serial1 RX) → iBus Signal (CH1-6)
-Pin 14 (A0) → Sound Mute (PWM)
-Pin 15 (A1) → Sound Mode (PWM)
-Pin 16 (A2) → Sound Mood (PWM, 3-position)
-Pin 17 (A3) → Sound Squeak (PWM)
-```
-
-### Mode 2: Pure iBus
-```
-Pin 19 (Serial1 RX) → iBus Signal (all 10 channels)
-```
-
-### I2C (MPU6050)
-```
-Pin 20 → SDA
-Pin 21 → SCL
-```
-
-### Battery Monitor
-```
-Pin A15 → Voltage divider input
+Voltage at A15 = Battery Voltage × (3.3 / 13.3)
 ```
 
 ---
@@ -247,16 +245,16 @@ Pin A15 → Voltage divider input
 
 | Channel | Function | Description |
 |---------|----------|-------------|
-| CH1 | Drive 1 | Left motor (tank-mixed) |
-| CH2 | Drive 2 | Right motor (tank-mixed) |
-| CH3 | Mainbar | Mainbar servo position |
-| CH4 | Head 1 | Head pitch movement |
-| CH5 | Head 2 | Head yaw movement |
-| CH6 | Head 3 | Head roll movement |
-| CH7 | Sound Mute | Sound on/off (Mode 2 only) |
-| CH8 | Sound Mode | Greeting / Default (Mode 2 only) |
-| CH9 | Sound Mood | Negative / Neutral / Positive (Mode 2 only) |
-| CH10 | Sound Squeak | Squeak sounds (Mode 2 only) |
+| **CH1** | Drive 1 | Left motor / Steering (depends on mixing mode) |
+| **CH2** | Drive 2 | Right motor / Throttle (depends on mixing mode) |
+| **CH3** | Mainbar | Mainbar servo position |
+| **CH4** | Head 1 | Head pitch movement |
+| **CH5** | Head 2 | Head yaw movement |
+| **CH6** | Head 3 | Head roll movement |
+| **CH7** | Sound Mute | Sound on/off (Mode 2 only) |
+| **CH8** | Sound Mode | Greeting / Default (Mode 2 only) |
+| **CH9** | Sound Mood | Negative / Neutral / Positive (Mode 2 only) |
+| **CH10** | Sound Squeak | Squeak sounds (Mode 2 only) |
 
 ---
 
@@ -309,61 +307,69 @@ Left Stick    Right Stick
 4. At the end, select mixing mode:
    - `0` = Tank Mode
    - `1` = Arcade Mode (recommended)
-5. Select `9` → Save and Exit
-
----
-
-## 💾 SD Card File Structure
-
-Audio files must be placed on the Micro SD card in the `/mp3/` folder:
-
-```
-/mp3/
-  0001.mp3 - Startup sound ("battery charged")
-  0002.mp3 - Default sound ("I am D-O")
-  0003.mp3 to 0005.mp3 - Greeting sounds
-  0006.mp3 to 0009.mp3 - Negative sounds
-  0010.mp3 to 0014.mp3 - Positive sounds
-  0015.mp3 to 0020.mp3 - Squeaky wheel sounds
-  0021.mp3 - Tilt warning sound
-  0022.mp3 - Recovery/relief sound
-  0023.mp3 - Low battery warning
-  0024.mp3 to 0030.mp3 - Idle sounds
-```
+5. Select `s` → Save and Exit
 
 ---
 
 ## 🚀 Installation
 
-### 1. Required Arduino Libraries
+### Step 1: Required Arduino Libraries
 
 Install via Arduino Library Manager:
 
-- **Wire** (Arduino built-in)
-- **IBusBM** (by Bolder Flight Systems)
-- **Servo** (Arduino built-in)
-- **EEPROM** (Arduino built-in)
-- **SoftwareSerial** (Arduino built-in)
-- **DFRobotDFPlayerMini** (by DFRobot)
+```
+Required Libraries:
+├── Wire                    (Arduino built-in)
+├── IBusBM                  (by Bolder Flight Systems)
+├── Servo                   (Arduino built-in)
+├── EEPROM                  (Arduino built-in)
+├── SoftwareSerial          (Arduino built-in)
+└── DFRobotDFPlayerMini     (by DFRobot)
+```
 
-### 2. Upload Sketch
+### Step 2: Board Configuration
 
-1. Open `D_O_printed_droid_rc_ibus_v2.1.ino` in Arduino IDE
-2. Select board: **Tools → Board → Arduino Mega 2560**
-3. Select port: **Tools → Port → [Your COM Port]**
-4. Upload: **Sketch → Upload**
+1. Open Arduino IDE
+2. Go to **Tools → Board → Arduino Mega or Mega 2560**
+3. Select correct **Port** under Tools menu
+
+### Step 3: Upload Sketch
+
+1. Connect Arduino Mega via USB
+2. Open `D_O_printed_droid_rc_ibus_v2.1.ino`
+3. Click **Upload** (Ctrl+U)
+4. Wait for "Done uploading" message
+
+### Step 4: Initial Configuration
+
+1. Open Serial Monitor (9600 baud)
+2. Send `m` within 3 seconds to enter configuration menu
+3. Configure your setup mode and preferences
+4. Save and restart
+
+---
+
+## ⌨️ Serial Commands (CLI)
+
+Connect via Serial Monitor at **9600 baud**.
+
+### Quick Commands
+
+| Command | Description |
+|---------|-------------|
+| `m` | Open configuration menu |
+| `c` | Run IMU calibration |
+| `s` | Show current status |
+
+### Configuration Menu Access
+
+Send `m` at any time to open the full configuration menu.
 
 ---
 
 ## ⚙️ Configuration Menu
 
-### Access Menu
-
-1. Open Serial Monitor (9600 baud)
-2. Send `m` within 3 seconds of startup, OR
-3. Send `m` anytime during operation
-
-### Menu Options
+### Menu Structure
 
 ```
 === CONFIGURATION MENU ===
@@ -372,26 +378,26 @@ Install via Arduino Library Manager:
 2. Feature Toggles
 3. Battery Settings
 4. Sound Settings
-5. Driving Dynamics
+5. Driving Dynamics (includes Mixing Mode)
 6. Adaptive PID Settings
 7. IMU Calibration
-8. Setup Type (PWM/Hybrid/iBus)
+8. Setup Type (PWM/Hybrid/iBus + Baudrate)
 9. Save and Exit
 0. Exit without Saving
 ```
 
-### Quick Reference
+### Menu Options Quick Reference
 
 | Option | What it configures |
 |--------|-------------------|
-| 1 | KP, KI, KD, Target Angle, Max Integral |
-| 2 | Ramping, Adaptive PID, Dynamic Angle, Idle Actions, State Reactions, Battery Monitor |
-| 3 | Warning/Critical Voltage, Voltage Divider Factor |
-| 4 | Volume (0-30), Sound Intervals |
-| 5 | Ramp Rate, Max Acceleration, Max Lean, Deadband, Expo |
-| 6 | KP/KD values for Slow/Medium/Fast speeds |
-| 7 | Run IMU calibration routine |
-| 8 | Select Mode (0/1/2), **Change iBus Baudrate** |
+| **1** | KP, KI, KD, Target Angle, Max Integral |
+| **2** | Ramping, Adaptive PID, Dynamic Angle, Idle Actions, State Reactions, Battery Monitor |
+| **3** | Warning/Critical Voltage, Voltage Divider Factor |
+| **4** | Volume (0-30), Sound Intervals |
+| **5** | Ramp Rate, Max Acceleration, Max Lean, Deadband, Expo, **Mixing Mode** |
+| **6** | KP/KD values for Slow/Medium/Fast speeds |
+| **7** | Run IMU calibration routine |
+| **8** | Select Mode (0/1/2), Change iBus Baudrate |
 
 ### Changing iBus Baudrate
 
@@ -399,6 +405,51 @@ Install via Arduino Library Manager:
 2. Press `b` to change baudrate
 3. Select `1` for 9600 or `2` for 115200
 4. Save and restart
+
+---
+
+## 💾 SD Card File Structure
+
+Audio files must be placed on the Micro SD card in the `/mp3/` folder:
+
+```
+📁 /mp3/
+├── 0001.mp3    Startup sound ("battery charged")
+├── 0002.mp3    Default sound ("I am D-O")
+├── 0003.mp3    Greeting 1
+├── 0004.mp3    Greeting 2
+├── 0005.mp3    Greeting 3
+├── 0006.mp3    Negative 1
+├── 0007.mp3    Negative 2
+├── 0008.mp3    Negative 3
+├── 0009.mp3    Negative 4
+├── 0010.mp3    Positive 1
+├── 0011.mp3    Positive 2
+├── 0012.mp3    Positive 3
+├── 0013.mp3    Positive 4
+├── 0014.mp3    Positive 5
+├── 0015.mp3    Squeak 1
+├── 0016.mp3    Squeak 2
+├── 0017.mp3    Squeak 3
+├── 0018.mp3    Squeak 4
+├── 0019.mp3    Squeak 5
+├── 0020.mp3    Squeak 6
+├── 0021.mp3    Tilt warning sound
+├── 0022.mp3    Recovery/relief sound
+├── 0023.mp3    Low battery warning
+├── 0024.mp3    Idle sound 1
+├── 0025.mp3    Idle sound 2
+├── 0026.mp3    Idle sound 3
+├── 0027.mp3    Idle sound 4
+├── 0028.mp3    Idle sound 5
+├── 0029.mp3    Idle sound 6
+└── 0030.mp3    Idle sound 7
+```
+
+**Requirements:**
+- SD card: FAT16 or FAT32 formatted
+- Filenames: Exactly 4 digits (0001, 0002, etc.)
+- Format: MP3, 128-320 kbps recommended
 
 ---
 
@@ -410,7 +461,7 @@ Install via Arduino Library Manager:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Self-Balancing Controller v2.1 ===
+   === D-O Self-Balancing Controller v2.1.2 ===
    Configuration loaded from EEPROM
    iBus initialized @ 9600 baud
    Waiting for RC signal...
@@ -430,7 +481,7 @@ Install via Arduino Library Manager:
 
 ### Default PID Values
 
-```
+```cpp
 KP: 25.0
 KI: 0.0
 KD: 0.8
@@ -443,7 +494,7 @@ Target Angle: -0.3
 
 ### Problem: D-O does nothing / no response
 
-**Solution:**
+**Solutions:**
 1. Check Serial Monitor output
 2. Verify you see `iBus initialized @ XXXX baud`
 3. If not, the iBus init failed - check wiring
@@ -451,22 +502,34 @@ Target Angle: -0.3
 
 ### Problem: "EMERGENCY STOP - Signal lost!"
 
-**Solution:**
+**Solutions:**
 1. RC transmitter turned on?
 2. Receiver bound to transmitter?
 3. Correct wiring for your mode?
 4. Try different iBus baudrate
 
+### Problem: Forward/backward much slower than turning
+
+**Solutions:**
+1. Change to Arcade mixing mode (Menu → 5 → select 1)
+2. Or configure tank mixing on your transmitter
+
+### Problem: Battery shows wrong voltage (1.8V, 2.8V)
+
+**Solutions:**
+1. Voltage divider not connected - enable via Menu → 2 → Battery Monitor OFF
+2. Or connect proper voltage divider to A15
+
 ### Problem: iBus works with v1.1 but not v2.1
 
-**Solution:**
+**Solutions:**
 1. v2.1 defaults to 9600 baud (like v1.1)
 2. If still not working, check Serial output for init messages
 3. Make sure you have the latest v2.1 with the bug fixes
 
 ### Problem: D-O tips over / doesn't balance
 
-**Solution:**
+**Solutions:**
 1. Perform IMU calibration (send `c`)
 2. Adjust Target Angle (usually -1.0 to 1.0)
 3. Check PID values
@@ -474,7 +537,7 @@ Target Angle: -0.3
 
 ### Problem: No sound
 
-**Solution:**
+**Solutions:**
 1. SD card formatted FAT16/FAT32?
 2. Files in `/mp3/` folder with correct names?
 3. Check DFPlayer wiring (pins 7, 8)
@@ -482,48 +545,119 @@ Target Angle: -0.3
 
 ---
 
-## 📊 Technical Details
+## ⚠️ Safety & Disclaimer
 
-### PID Control
+### Safety Warnings
+
+1. **Lithium Batteries are dangerous!**
+   - Never leave charging batteries unattended
+   - Use proper LiPo charger with balance charging
+   - Store in fireproof LiPo bag
+   - Dispose of damaged batteries properly
+
+2. **Moving Parts**
+   - Keep fingers away from wheels during operation
+   - Secure head before testing balance
+   - Test in open area away from obstacles
+
+3. **Electronics**
+   - Do not connect/disconnect while powered
+   - Check polarity before connecting batteries
+   - Use appropriate fuses for motor circuits
+   - Ensure adequate ventilation for motor drivers
+
+### Disclaimer
 
 ```
-PID = (KP × Error) + (KI × ∫Error) + (KD × dError/dt)
+THIS SOFTWARE AND HARDWARE DESIGN IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED. THE AUTHORS AND CONTRIBUTORS ARE NOT LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ARISING FROM THE USE OF THIS PROJECT.
+
+USE AT YOUR OWN RISK. You are responsible for ensuring safe operation of your
+build. Always supervise operation and be prepared to cut power immediately if
+something goes wrong.
+
+This is a fan project for personal, non-commercial use only. D-O, Star Wars,
+and all related properties are trademarks of Lucasfilm Ltd. and The Walt Disney
+Company.
 ```
 
-### Complementary Filter
+---
+
+## 🌐 Community & Support
+
+### Official Resources
+
+- **Website**: [www.printed-droid.com](https://www.printed-droid.com)
+- **Facebook Group**: [Printed Droid Community](https://www.facebook.com/groups/printeddroid/)
+
+### Getting Help
+
+1. Check the [Troubleshooting](#-troubleshooting) section first
+2. Search the Facebook group for similar issues
+3. Post in the Facebook group with:
+   - Your hardware setup (photos help!)
+   - Serial Monitor output
+   - Arduino IDE version
+   - What you've already tried
+
+### Contributing
+
+Found a bug or have an improvement?
+- Report issues on GitHub
+- Share your builds in the Facebook group!
+
+---
+
+## 📄 License
 
 ```
-Angle = 0.98 × (Angle + Gyro × dt) + 0.02 × Accel
+NON-COMMERCIAL LICENSE
+
+Copyright (c) 2020-2025 Reinhard Stockinger & Printed-Droid.com Community
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, and distribute the Software for PERSONAL, NON-COMMERCIAL purposes
+only, subject to the following conditions:
+
+1. The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+2. The Software shall NOT be used for commercial purposes, including but not
+   limited to: selling, licensing, or including in commercial products or
+   services.
+
+3. Attribution must be given to the original authors and the Printed-Droid.com
+   community in any derivative works.
+
+4. This is a fan project. Star Wars, D-O, and all related properties are
+   trademarks of Lucasfilm Ltd. and The Walt Disney Company.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 ```
-
-### Adaptive PID
-
-Speed-dependent PID adjustment:
-- **Slow** (<50): Higher KP/KD for stability
-- **Medium** (50-150): Balanced values
-- **Fast** (>150): Lower KP/KD for smoothness
 
 ---
 
 ## 👥 Credits
 
 **Original Design:**
-- D-O Droid Design: Star Wars / Lucasfilm
+- D-O Droid Design: Star Wars / Lucasfilm / The Walt Disney Company
 
 **Software:**
 - Original code: Reinhard Stockinger (2020)
-- v2.0 enhancements: Printed-Droid.com
-- v2.1 bug fixes: Printed-Droid.com
+- v2.0+ enhancements: Printed-Droid.com Community
+- v2.1 bug fixes & features: Printed-Droid.com
 
 **Libraries:**
 - IBusBM: Bolder Flight Systems
 - DFRobotDFPlayerMini: DFRobot
 
----
-
-## 💬 Support
-
-- GitHub Issues: [Create an issue](https://github.com/PrintedDroid/D-O-Printed-Droid/issues)
+**Community:**
+- Testing and feedback: Printed-Droid.com Community
 
 ---
 
@@ -531,7 +665,8 @@ Speed-dependent PID adjustment:
 
 **May the Force be with your D-O!** ⚡🤖
 
-*For the latest updates, visit: [www.printed-droid.com](https://www.printed-droid.com)*
+*For the latest updates and community support:*
+
+🌐 [www.printed-droid.com](https://www.printed-droid.com) | 📘 [Facebook Group](https://www.facebook.com/groups/printeddroid/)
 
 </div>
-
