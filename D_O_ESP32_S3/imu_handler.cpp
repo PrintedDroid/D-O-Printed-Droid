@@ -1,7 +1,9 @@
 /**
- * IMU Handler Implementation - CORRECTED VERSION
- * Manages QMI8658C and MPU6050 for accurate orientation tracking
- * 
+ * IMU Handler Implementation
+ * Uses QMI8658C (onboard TENSTAR ESP32-S3) for orientation tracking
+ *
+ * Note: MPU6050/BNO055 support disabled - QMI8658C is sufficient for self-balancing
+ *
  * FIXED: Added timeout protection to prevent watchdog resets
  * FIXED: Removed String objects
  * ADDED: Better error handling and I2C bus recovery
@@ -9,8 +11,13 @@
 
 #include "imu_handler.h"
 #include <SensorQMI8658.hpp>
+
+// MPU6050 - DISABLED (not needed, QMI8658C is sufficient)
+#if USE_MPU6050
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
+#endif
+
 #include <Preferences.h>
 #include "esp_task_wdt.h"
 
@@ -68,10 +75,10 @@ bool IMUHandler::checkI2CBus() {
 }
 
 // Constructor
-IMUHandler::IMUHandler() : 
-    qmi8658(nullptr), 
-    mpu6050(nullptr),
-    currentMode(IMU_MODE_AUTO),
+IMUHandler::IMUHandler() :
+    qmi8658(nullptr),
+    // mpu6050(nullptr),  // MPU6050 disabled
+    currentMode(IMU_MODE_QMI_ONLY),  // Default to QMI only
     compFilterRoll(0.0f),
     compFilterPitch(0.0f),
     lastFilterUpdate(0) {
@@ -123,25 +130,28 @@ bool IMUHandler::begin(IMUMode mode) {
         }
     }
     
+    // MPU6050 - DISABLED (not needed, QMI8658C is sufficient for self-balancing)
+    #if USE_MPU6050
     // Try to initialize MPU6050 with timeout
-    if (USE_MPU6050) {
-        DEBUG_PRINTLN("IMU Handler: Attempting to init MPU6050...");
-        esp_task_wdt_reset(); // Feed watchdog
-        
-        uint32_t startTime = millis();
-        status.mpu_available = initMPU6050();
-        
-        if (millis() - startTime > 1000) {
-            DEBUG_PRINTLN("IMU Handler: MPU6050 init timeout!");
-            status.mpu_available = false;
-        }
-        
-        if (status.mpu_available) {
-            DEBUG_PRINTLN("IMU Handler: MPU6050 initialized successfully");
-        } else {
-            DEBUG_PRINTLN("IMU Handler: MPU6050 not found or init failed");
-        }
+    DEBUG_PRINTLN("IMU Handler: Attempting to init MPU6050...");
+    esp_task_wdt_reset(); // Feed watchdog
+
+    uint32_t startTime = millis();
+    status.mpu_available = initMPU6050();
+
+    if (millis() - startTime > 1000) {
+        DEBUG_PRINTLN("IMU Handler: MPU6050 init timeout!");
+        status.mpu_available = false;
     }
+
+    if (status.mpu_available) {
+        DEBUG_PRINTLN("IMU Handler: MPU6050 initialized successfully");
+    } else {
+        DEBUG_PRINTLN("IMU Handler: MPU6050 not found or init failed");
+    }
+    #else
+    status.mpu_available = false;  // MPU6050 disabled
+    #endif
     
     // Load calibration data
     loadCalibration();
@@ -282,26 +292,27 @@ bool IMUHandler::initQMI8658C() {
     return false;
 }
 
-// Initialize MPU6050 - WITH TIMEOUT AND ERROR HANDLING
+// Initialize MPU6050 - DISABLED (not needed, QMI8658C is sufficient)
+#if USE_MPU6050
 bool IMUHandler::initMPU6050() {
     // First check I2C bus health
     if (!checkI2CBus()) {
         DEBUG_PRINTLN("IMU Handler: I2C bus error - check connections");
         return false;
     }
-    
+
     // Check if device exists at expected address with retries
     uint8_t retries = 3;
     while (retries > 0) {
         Wire.beginTransmission(MPU6050_ADDRESS);
         uint8_t error = Wire.endTransmission();
-        
+
         if (error == 0) {
             break;  // Success
         } else {
             DEBUG_PRINTF("IMU Handler: MPU6050 I2C error %d\n", error);
         }
-        
+
         retries--;
         if (retries > 0) {
             DEBUG_PRINTF("IMU Handler: Retrying... (%d left)\n", retries);
@@ -309,24 +320,24 @@ bool IMUHandler::initMPU6050() {
             esp_task_wdt_reset();
         }
     }
-    
+
     if (retries == 0) {
         DEBUG_PRINTLN("IMU Handler: MPU6050 not responding at address 0x68");
         return false;
     }
-    
+
     try {
         mpu6050 = new Adafruit_MPU6050();
-        
+
         if (!mpu6050) {
             DEBUG_PRINTLN("IMU Handler: Failed to allocate MPU6050 object");
             return false;
         }
-        
+
         // Set a short timeout for initialization
         uint32_t initStart = millis();
         bool initSuccess = false;
-        
+
         // Try initialization with timeout check
         while (millis() - initStart < 500) { // 500ms timeout
             if (mpu6050->begin(MPU6050_ADDRESS, &Wire)) {
@@ -336,39 +347,44 @@ bool IMUHandler::initMPU6050() {
             delay(10);
             esp_task_wdt_reset();
         }
-        
+
         if (!initSuccess) {
             DEBUG_PRINTLN("IMU Handler: MPU6050 begin() failed");
             delete mpu6050;
             mpu6050 = nullptr;
             return false;
         }
-        
+
         DEBUG_PRINTLN("IMU Handler: MPU6050 found and initialized");
-        
+
         // Configure sensor
         mpu6050->setAccelerometerRange(MPU6050_RANGE_4_G);
         mpu6050->setGyroRange(MPU6050_RANGE_500_DEG);
         mpu6050->setFilterBandwidth(MPU6050_BAND_21_HZ);
-        
+
         // Enable interrupt on data ready if pin is defined
         if (MPU6050_INT_PIN >= 0) {
             pinMode(MPU6050_INT_PIN, INPUT);
         }
-        
+
         status.mpu_initialized = true;
         return true;
-        
+
     } catch (...) {
         DEBUG_PRINTLN("IMU Handler: Exception during MPU6050 init");
     }
-    
+
     if (mpu6050) {
         delete mpu6050;
         mpu6050 = nullptr;
     }
     return false;
 }
+#else
+bool IMUHandler::initMPU6050() {
+    return false;  // MPU6050 disabled
+}
+#endif
 
 // Main update function
 bool IMUHandler::update() {
@@ -438,15 +454,16 @@ void IMUHandler::readQMI8658C() {
     calibrateIMU(qmiData, true);
 }
 
-// Read MPU6050 data
+// Read MPU6050 data - DISABLED (not needed)
+#if USE_MPU6050
 void IMUHandler::readMPU6050() {
     if (!mpu6050) {
         DEBUG_PRINTLN("IMU Handler: MPU6050 null pointer!");
         return;
     }
-    
+
     sensors_event_t a, g, temp;
-    
+
     // Check if getEvent succeeds
     if (mpu6050->getEvent(&a, &g, &temp)) {
         mpuData.ax = a.acceleration.x;
@@ -456,13 +473,18 @@ void IMUHandler::readMPU6050() {
         mpuData.gy = g.gyro.y * RAD_TO_DEG;
         mpuData.gz = g.gyro.z * RAD_TO_DEG;
         mpuData.temperature = temp.temperature;
-        
+
         // Apply calibration
         calibrateIMU(mpuData, false);
     } else {
         DEBUG_PRINTLN("IMU Handler: Failed to read MPU6050 data");
     }
 }
+#else
+void IMUHandler::readMPU6050() {
+    // MPU6050 disabled - do nothing
+}
+#endif
 
 // Fuse data from both IMUs
 void IMUHandler::fuseIMUData() {
@@ -820,12 +842,14 @@ void IMUHandler::end() {
         delete qmi8658;
         qmi8658 = nullptr;
     }
-    
+
+    #if USE_MPU6050
     if (mpu6050) {
         delete mpu6050;
         mpu6050 = nullptr;
     }
-    
+    #endif
+
     status.qmi_initialized = false;
     status.mpu_initialized = false;
 }

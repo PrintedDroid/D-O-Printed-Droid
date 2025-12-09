@@ -1,6 +1,6 @@
 /********************************************************************************
  * PROJECT: D-O Self-Balancing Droid - Universal Controller
- * VERSION: 3.3.0 (Added Idle Animations, Adaptive PID, Dynamic Lean)
+ * VERSION: 3.3.1 (Added RC Mixing Mode selection)
  * DATE:    December 2025
  *
  * DESCRIPTION:
@@ -138,6 +138,7 @@ struct Configuration {
   float max_lean_angle = 3.0;
   uint8_t deadband = 30;
   float expo_factor = 0.5;
+  uint8_t mixing_mode = 1;  // 0=Tank (CH1=Motor1, CH2=Motor2), 1=Arcade (CH1=Steering, CH2=Throttle)
 
   // Adaptive PID Parameters
   float kp_slow = 25.0;
@@ -346,7 +347,7 @@ unsigned long last_freq_print = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Universal Controller v3.3.0 ==="));
+  Serial.println(F("\n=== D-O Universal Controller v3.3.1 ==="));
 
   // Load configuration
   loadConfiguration();
@@ -970,9 +971,20 @@ void updateMotors() {
   uint16_t processed1 = RC_CENTER + centered1;
   uint16_t processed2 = RC_CENTER + centered2;
 
-  // Map to motor speed
-  float base_speed_1 = map(processed1, RC_MIN, RC_MAX, -255, 255);
-  float base_speed_2 = map(processed2, RC_MIN, RC_MAX, -255, 255);
+  // Calculate base speeds based on mixing mode
+  float base_speed_1, base_speed_2;
+
+  if (config.mixing_mode == 1) {
+    // Arcade Mode: CH1=Steering, CH2=Throttle (recommended for standard FlySky config)
+    int throttle = map(processed2, RC_MIN, RC_MAX, -255, 255);  // CH2 = forward/back
+    int steering = map(processed1, RC_MIN, RC_MAX, -255, 255);  // CH1 = left/right
+    base_speed_1 = throttle + steering;  // Left motor
+    base_speed_2 = throttle - steering;  // Right motor
+  } else {
+    // Tank Mode: CH1=Motor1, CH2=Motor2 (original behavior)
+    base_speed_1 = map(processed1, RC_MIN, RC_MAX, -255, 255);
+    base_speed_2 = map(processed2, RC_MIN, RC_MAX, -255, 255);
+  }
 
   motor_target_1 = base_speed_1;
   motor_target_2 = base_speed_2;
@@ -1452,6 +1464,29 @@ void configureDynamics() {
   config.max_lean_angle = getFloatInput(F("Max Lean Angle"), config.max_lean_angle, 0, 10);
   config.deadband = getIntInput(F("RC Deadband"), config.deadband, 0, 100);
   config.expo_factor = getFloatInput(F("Expo Factor (0-1)"), config.expo_factor, 0, 1);
+
+  // Mixing Mode Configuration
+  Serial.println(F("\n--- RC Mixing Mode ---"));
+  Serial.print(F("Current: "));
+  Serial.println(config.mixing_mode == 1 ? F("Arcade (CH1=Steer, CH2=Throttle)") : F("Tank (CH1=Motor1, CH2=Motor2)"));
+  Serial.println(F("0 = Tank (two sticks, each controls one motor)"));
+  Serial.println(F("1 = Arcade (one stick: up/down=drive, left/right=steer) [RECOMMENDED]"));
+  Serial.print(F("Choice [0-1]: "));
+
+  while (!Serial.available()) delay(10);
+  char choice = Serial.read();
+  while (Serial.available()) Serial.read();
+  Serial.println(choice);
+
+  if (choice == '0') {
+    config.mixing_mode = 0;
+    Serial.println(F("Set to Tank Mode"));
+  } else if (choice == '1') {
+    config.mixing_mode = 1;
+    Serial.println(F("Set to Arcade Mode"));
+  } else {
+    Serial.println(F("Invalid - unchanged"));
+  }
 }
 
 void configureBattery() {
