@@ -1,7 +1,8 @@
 /**
  * IMU Handler for D-O Droid
- * Manages both QMI8658C and MPU6050 IMUs
- * Supports individual or fused operation
+ * Uses QMI8658C (onboard TENSTAR ESP32-S3)
+ *
+ * Note: MPU6050/BNO055 support disabled - QMI8658C is sufficient for self-balancing
  */
 
 #ifndef IMU_HANDLER_H
@@ -13,14 +14,14 @@
 
 // Forward declarations for IMU libraries
 class SensorQMI8658;
-class Adafruit_MPU6050;
+// class Adafruit_MPU6050;  // Not used - MPU6050 disabled
 
 // IMU operation modes
 enum IMUMode {
-    IMU_MODE_QMI_ONLY,      // Only QMI8658C
-    IMU_MODE_MPU_ONLY,      // Only MPU6050
-    IMU_MODE_FUSION,        // Both IMUs with sensor fusion
-    IMU_MODE_AUTO           // Auto-select based on availability
+    IMU_MODE_QMI_ONLY,      // Only QMI8658C (default and recommended)
+    IMU_MODE_MPU_ONLY,      // Only MPU6050 - DISABLED
+    IMU_MODE_FUSION,        // Both IMUs - DISABLED (not needed)
+    IMU_MODE_AUTO           // Auto-select (will use QMI8658C)
 };
 
 // IMU status flags
@@ -70,7 +71,7 @@ class IMUHandler {
 private:
     // IMU objects
     SensorQMI8658* qmi8658;
-    Adafruit_MPU6050* mpu6050;
+    // Adafruit_MPU6050* mpu6050;  // Not used - MPU6050 disabled
     
     // Current IMU mode
     IMUMode currentMode;
