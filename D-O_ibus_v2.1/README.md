@@ -442,12 +442,11 @@ Speed-dependent PID adjustment:
 
 **Original Design:**
 - D-O Droid Design: Star Wars / Lucasfilm
-- 3D Model: [Printed-Droid.com](https://www.printed-droid.com)
 
 **Software:**
 - Original code: Reinhard Stockinger (2020)
 - v2.0 enhancements: Printed-Droid.com
-- v2.1 bug fixes: PrintedDroid Community
+- v2.1 bug fixes: Printed-Droid.com
 
 **Libraries:**
 - IBusBM: Bolder Flight Systems
@@ -455,16 +454,9 @@ Speed-dependent PID adjustment:
 
 ---
 
-## 📄 License
-
-MIT License - See LICENSE file for details.
-
----
-
 ## 💬 Support
 
 - GitHub Issues: [Create an issue](https://github.com/PrintedDroid/D-O-Printed-Droid/issues)
-- Forum: [Printed-Droid.com Forum](https://www.printed-droid.com/forum)
 
 ---
 
@@ -475,3 +467,4 @@ MIT License - See LICENSE file for details.
 *For the latest updates, visit: [www.printed-droid.com](https://www.printed-droid.com)*
 
 </div>
+
