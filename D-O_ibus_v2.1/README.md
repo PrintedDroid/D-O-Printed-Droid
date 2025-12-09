@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - iBus Controller v2.1
 
-![Version](https://img.shields.io/badge/version-2.1.5-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.6-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -52,12 +52,16 @@ Built on the proven v1.1 foundation with significant feature additions for build
 
 ## 📝 Changelog
 
-### Version 2.1.5 (December 2025)
+### Version 2.1.6 (December 2025)
 
-**IMU Axis Test + Motor Test & Safety Features**
+**IMU Axis Invert + Test & Safety Features**
 
 #### ✨ New Features
 
+- **IMU Axis Invert** (`F` in IMU test menu): Software fix for reversed IMU orientation
+  - No need to physically remount the IMU
+  - Toggle front/back direction via CLI
+  - Saved to EEPROM
 - **IMU Axis Test** (`i` in CLI): Live angle display to verify IMU orientation
   - Shows Angle[0] (balance) and Angle[1] (side) in real-time
   - Displays raw accelerometer values (X, Y, Z)
@@ -494,7 +498,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Self-Balancing Controller v2.1.5 ===
+   === D-O Self-Balancing Controller v2.1.6 ===
    Configuration loaded from EEPROM
    iBus initialized @ 9600 baud
    Waiting for RC signal...

@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - Universal Controller v3
 
-![Version](https://img.shields.io/badge/version-3.3.4-blue.svg)
+![Version](https://img.shields.io/badge/version-3.3.5-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -56,12 +56,16 @@ Designed for builders who want the most advanced and reliable D-O control system
 
 ## 📝 Changelog
 
-### Version 3.3.4 (December 2025)
+### Version 3.3.5 (December 2025)
 
-**IMU Axis Test + Motor Test & Safety Features**
+**IMU Axis Invert + Test & Safety Features**
 
 #### ✨ New Features
 
+- **IMU Axis Invert** (`F` in IMU test menu): Software fix for reversed IMU orientation
+  - No need to physically remount the IMU
+  - Toggle front/back direction via CLI
+  - Saved to EEPROM
 - **IMU Axis Test** (`i` in CLI): Live angle display to verify IMU orientation
   - Shows Angle[0] (balance) and Angle[1] (side) in real-time
   - Displays raw accelerometer values (X, Y, Z)
@@ -486,7 +490,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Universal Controller v3.3.4 ===
+   === D-O Universal Controller v3.3.5 ===
    Configuration loaded
    Setup Mode: iBus (Recommended)
    IMU found at 0x68
