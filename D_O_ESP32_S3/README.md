@@ -3,7 +3,7 @@
 ![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-ESP32--S3-green.svg)
 ![Board](https://img.shields.io/badge/board-TENSTAR%20TS--ESP32--S3-purple.svg)
-![License](https://img.shields.io/badge/license-MIT-orange.svg)
+![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
 **Advanced ESP32-S3 based controller for D-O self-balancing droid with integrated TFT display**
 
@@ -13,6 +13,7 @@ This ESP32-S3 sketch provides complete control over a self-balancing D-O droid (
 
 ## 📋 Table of Contents
 
+- [Safety & Disclaimer](#-safety--disclaimer)
 - [Features](#-features)
 - [Hardware Requirements](#-hardware-requirements)
 - [Pin Configuration](#-pin-configuration)
@@ -24,7 +25,78 @@ This ESP32-S3 sketch provides complete control over a self-balancing D-O droid (
 - [Usage](#-usage)
 - [PID Auto-Tune](#-pid-auto-tune)
 - [Troubleshooting](#-troubleshooting)
+- [Community & Support](#-community--support)
 - [Credits](#-credits)
+- [License](#-license)
+
+---
+
+## ⚠️ Safety & Disclaimer
+
+### Important Safety Warnings
+
+**BEFORE YOU BEGIN - READ CAREFULLY:**
+
+This project involves electrical components, lithium batteries, motors, and moving mechanical parts. Working with these components carries inherent risks including but not limited to:
+
+- **Electrical hazards** from improper wiring or short circuits
+- **Fire hazards** from lithium batteries if mishandled, overcharged, or damaged
+- **Mechanical injuries** from moving servos, wheels, and the droid body
+- **Property damage** from an uncontrolled or malfunctioning droid
+
+### Safety Guidelines
+
+1. **Battery Safety**
+   - ALWAYS use a proper LiPo charger with balance charging capability
+   - NEVER leave batteries charging unattended
+   - NEVER use damaged, swollen, or punctured batteries
+   - Store batteries in fireproof LiPo bags when not in use
+   - Disconnect batteries immediately if any unusual behavior occurs
+   - Monitor battery voltage - do not over-discharge below 3.3V per cell
+
+2. **Electrical Safety**
+   - Double-check all wiring before powering on
+   - Use appropriate wire gauges for high-current connections
+   - Ensure proper polarity on all connections
+   - Use fuses or circuit breakers where appropriate
+   - Keep liquids away from electronics
+
+3. **Mechanical Safety**
+   - Secure all mechanical parts properly before operation
+   - Keep fingers, hair, and loose clothing away from moving parts
+   - Test in an open area with soft flooring initially
+   - Remove head during PID tuning to prevent damage
+   - Be prepared to catch the droid if it loses balance
+   - Keep bystanders at a safe distance during testing
+
+4. **Operating Safety**
+   - Always supervise the droid during operation
+   - Have a clear "kill switch" ready (disconnect battery)
+   - Test new code changes incrementally
+   - Start with low motor speeds and increase gradually
+   - Never operate near stairs, ledges, or obstacles
+
+### Disclaimer
+
+**THIS PROJECT IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.**
+
+The creators, contributors, and community members of this project assume NO responsibility or liability for:
+
+- Any damage to property, equipment, or electronic components
+- Personal injury to yourself or others
+- Fire, electrical damage, or any other hazards
+- Malfunction or unexpected behavior of the droid
+- Any direct, indirect, incidental, or consequential damages
+
+**BY USING THIS CODE AND BUILDING THIS PROJECT, YOU ACKNOWLEDGE:**
+
+1. You understand and accept all risks involved
+2. You take full responsibility for your own safety and the safety of others
+3. You will follow all applicable safety guidelines and local regulations
+4. You have adequate knowledge and skills for this type of project
+5. Any modifications or changes you make are your own responsibility
+
+**This is a hobby project for educational and entertainment purposes. If you are not comfortable with electronics, programming, or working with lithium batteries, please seek assistance from someone with appropriate experience.**
 
 ---
 
@@ -676,6 +748,50 @@ D_O_ESP32_S3/
 
 ---
 
+## 🌐 Community & Support
+
+### Getting Help
+
+If you need assistance with your D-O droid build, have questions, or want to share your progress:
+
+### Official Resources
+
+| Resource | Link | Description |
+|----------|------|-------------|
+| **Website** | [www.printed-droid.com](https://www.printed-droid.com) | Main project website with guides and resources |
+| **Facebook Group** | [Printed Droid Community](https://www.facebook.com/groups/printeddroid/) | Active community for support, sharing, and discussion |
+
+### How to Get Support
+
+1. **Check the Troubleshooting Section** - Most common issues are documented above
+2. **Search the Facebook Group** - Your question may already be answered
+3. **Post in the Facebook Group** - Include:
+   - Which version you're using (ESP32-S3)
+   - What you've tried so far
+   - Photos/videos of your setup if relevant
+   - Serial Monitor output if applicable
+   - Board and component specifications
+
+### Contributing
+
+This is a community project, and contributions are welcome:
+
+- **Bug Reports:** Post issues in the Facebook group with detailed description
+- **Feature Requests:** Share your ideas with the community
+- **Code Improvements:** Fork the repository and submit pull requests
+- **Documentation:** Help improve guides and documentation
+- **Testing:** Test new features and provide feedback
+
+### Community Guidelines
+
+- Be respectful and helpful to fellow builders
+- Share your builds and progress - we love seeing D-O droids!
+- Help newcomers get started
+- Give credit when using others' work or modifications
+- Keep discussions constructive and on-topic
+
+---
+
 ## 👥 Credits
 
 **Original Design:**
@@ -695,51 +811,70 @@ D_O_ESP32_S3/
 
 ## 📄 License
 
-This project is released under the **MIT License**.
+### Non-Commercial License
+
+This project is released under a **Non-Commercial License**.
 
 ```
-MIT License
+D-O Printed Droid - Non-Commercial License
 
-Copyright (c) 2025 PrintedDroid Community
+Copyright (c) 2024-2025 Printed-Droid.com Community
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+TERMS AND CONDITIONS:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. GRANT OF LICENSE
+   You are granted a non-exclusive, non-transferable license to use, copy,
+   and modify this software and associated documentation for PERSONAL,
+   NON-COMMERCIAL purposes only.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. RESTRICTIONS
+   You may NOT:
+   - Sell this software or any derivative works
+   - Use this software for commercial purposes
+   - Include this software in commercial products or services
+   - Charge money for droids built using this software
+   - Use this software for commercial exhibitions or shows (paid entry)
+
+3. ATTRIBUTION
+   You must give appropriate credit to the Printed-Droid.com community,
+   provide a link to the original source, and indicate if changes were made.
+
+4. SHARE-ALIKE
+   If you modify or build upon this software, you must distribute your
+   contributions under the same non-commercial license.
+
+5. DISCLAIMER
+   THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+   THE AUTHORS ARE NOT LIABLE FOR ANY DAMAGES ARISING FROM USE OF
+   THIS SOFTWARE.
+
+6. EXCEPTIONS
+   For commercial licensing inquiries, please contact the community
+   administrators through www.printed-droid.com
+
+By using this software, you agree to these terms.
 ```
 
----
+### What This Means
 
-## ⚠️ Disclaimer
+| Allowed | Not Allowed |
+|---------|-------------|
+| Personal builds for yourself | Selling droids for profit |
+| Sharing at free community events | Commercial exhibitions (paid entry) |
+| Educational use in schools | Including in commercial products |
+| Modifying for personal use | Selling modifications or code |
+| Sharing your improvements (with same license) | Removing attribution |
 
-This code is provided "as is" without warranty. The authors assume no liability for damage to hardware, injuries, or other issues arising from the use of this code.
-
-**Safety Notes:**
-- Lithium batteries can be dangerous - follow all safety rules
-- Test in a safe environment with D-O secured
-- Remove head during PID tuning/testing
-- Disconnect battery immediately if problems occur
-- Keep clear of spinning wheels during operation
+**Note:** Star Wars and D-O are trademarks of Lucasfilm/Disney. This is a fan project and not affiliated with or endorsed by Lucasfilm or Disney.
 
 ---
 
 <div align="center">
 
-**May the Force be with your D-O!** ⚡🤖
+**May the Force be with your D-O!**
 
 *For the latest updates and community support, visit: [www.printed-droid.com](https://www.printed-droid.com)*
+
+*Join our community: [Facebook Group](https://www.facebook.com/groups/printeddroid/)*
 
 </div>
