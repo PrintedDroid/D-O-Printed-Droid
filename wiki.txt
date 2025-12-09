@@ -1,297 +1,358 @@
-D-O Droid Control System v2.1 – Setup and Configuration Guide
-============================================================
+<h1>D-O Droid Control System v2.1 – Setup and Configuration Guide</h1>
 
-The D-O Droid control system version 2.1 is a complete all-in-one solution for Arduino Mega
-that handles self-balancing, sound control, servo control, and all RC functions.
+The D-O Droid control system version 2.1 is a complete all-in-one solution for Arduino Mega that handles self-balancing, sound control, servo control, and all RC functions.
 
-Available Versions:
-- v1.1: Basic iBus control (simple, fewer features)
-- v2.1: Full featured with CLI configuration (RECOMMENDED)
-- v3.x: Universal controller with PWM/iBus modes and watchdog
-- ESP32-S3: Advanced version with TFT display and onboard IMU
+<strong>Available Versions:</strong>
+<ul>
+<li><strong>v1.1:</strong> Basic iBus control (simple, fewer features)</li>
+<li><strong>v2.1:</strong> Full featured with CLI configuration (RECOMMENDED)</li>
+<li><strong>v3.x:</strong> Universal controller with PWM/iBus modes and watchdog</li>
+<li><strong>ESP32-S3:</strong> Advanced version with TFT display and onboard IMU</li>
+</ul>
 
+<hr>
 
-================================================================================
-MEGA iBus v2.1 FULL SYSTEM
-================================================================================
+<h2 id="why-ibus">Why Choose iBus v2.1?<a href="#top" class="to-top">To top</a></h2>
 
-Why Choose iBus v2.1?
----------------------
 The iBus v2.1 is a complete system that combines ALL functions into one Arduino Mega:
 
-- MPU6050/6500/9250/6886 IMU-based self-balancing with PID control
-- 10-channel iBus RC receiver support
-- DFPlayer Mini sound system with personality features
-- Multi-servo control for head and mainbar movement
-- Battery monitoring with low voltage protection
-- Runtime configuration menu via Serial
-- Idle animations and state reactions
-- RC Mixing Mode selection (Arcade/Tank)
+<ul>
+<li>MPU6050/6500/9250/6886 IMU-based self-balancing with PID control</li>
+<li>10-channel iBus RC receiver support</li>
+<li>DFPlayer Mini sound system with personality features</li>
+<li>Multi-servo control for head and mainbar movement</li>
+<li>Battery monitoring with low voltage protection</li>
+<li>Runtime configuration menu via Serial</li>
+<li>Idle animations and state reactions</li>
+<li>RC Mixing Mode selection (Arcade/Tank)</li>
+</ul>
 
-One Mega does everything - no additional controllers needed!
+<strong>One Mega does everything - no additional controllers needed!</strong>
 
+<hr>
 
-Major Features
---------------
+<h2 id="features">Major Features<a href="#top" class="to-top">To top</a></h2>
 
-1. Runtime Configuration Menu (CLI)
-   No more editing code and re-uploading! All settings can be changed via Serial Monitor:
+<h3>1. Runtime Configuration Menu (CLI)</h3>
 
-   === CONFIGURATION MENU ===
-   1. PID Configuration
-   2. Feature Toggles
-   3. Battery Settings
-   4. Sound Settings
-   5. Driving Dynamics
-   6. Adaptive PID
-   7. Save & Exit
-   8. Factory Reset
-   9. Show Current Values
+No more editing code and re-uploading! All settings can be changed via Serial Monitor:
 
-   Access: Send 'm' via Serial Monitor at any time
-
-
-2. RC Mixing Mode Selection (NEW in v2.1.2)
-   Choose between two control styles:
-
-   ARCADE MODE (Default - Recommended):
-   - CH1 (Right Stick Left/Right) = Steering
-   - CH2 (Right Stick Up/Down) = Throttle (Forward/Backward)
-   - One stick controls everything - intuitive like a video game
-   - Best for standard FlySky transmitter configuration
-
-   TANK MODE (Original):
-   - CH1 = Left Motor speed
-   - CH2 = Right Motor speed
-   - Each stick controls one motor directly
-   - Requires mixing on transmitter or custom channel setup
-
-   Configure via: CLI Menu → 5. Driving Dynamics → RC Mixing Mode
-
-
-3. Multiple Setup Modes
-   // Mode 0: PWM Only (balance only, external sound controller)
-   // Mode 1: Hybrid (iBus drive + PWM sound)
-   // Mode 2: Pure iBus (RECOMMENDED - all in one)
-
-
-4. Battery Monitoring (Optional)
-   Monitors 2S+2S LiPo configuration (6.0V - 8.4V range)
-
-   IMPORTANT: Battery monitoring is OFF by default!
-   Only enable if you have the voltage divider circuit connected.
-
-   Without voltage divider: Pin A15 floats and shows random values
-   With voltage divider: Accurate battery percentage display
-
-   Enable via: CLI Menu → 2. Feature Toggles → Battery Monitor
-
-
-5. Adaptive PID Control
-   Automatically adjusts PID parameters based on driving speed:
-
-   - Slow (standing/creeping): Higher Kp for stability
-   - Medium (normal driving): Balanced settings
-   - Fast (quick maneuvers): Lower Kp, responsive handling
-
-   // Automatically adjusts based on speed
-   if (avg_speed < 50) {
-       current_kp = config.kp_slow;    // Stable when stationary
-   } else if (avg_speed > 150) {
-       current_kp = config.kp_fast;    // Responsive when moving
-   }
-
-
-6. Advanced Driving Dynamics
-   - Motor ramping for smooth acceleration
-   - Exponential RC curves for precise control
-   - Dynamic target angle (leans into movement)
-   - Turn compensation
-   - Acceleration limiting
-   - Configurable deadband
-
-
-7. Personality Features
-   D-O comes alive with:
-   - Random idle sounds and head movements after 3 seconds
-   - State reactions (tilt warnings, recovery sounds)
-   - Mood-based sound selection via RC channel
-
-   // Idle animations
-   void performRandomIdleAction() {
-       // Random sounds or head movements
-   }
-
-
-================================================================================
-HARDWARE REQUIREMENTS
-================================================================================
-
-Required Components:
-- Arduino Mega 2560 (required for Serial1 iBus)
-- FlySky iBus-compatible RC receiver (FS-iA6B recommended)
-- MPU6050 IMU (or compatible: MPU6500, MPU9250, MPU6886)
-- Cytron MD10C motor drivers (2x)
-- DFPlayer Mini sound module
-- 4x Servo motors (head 3x + mainbar 1x)
-- Speaker (8 ohm, <3W)
-- Micro SD card (FAT16/FAT32)
-- 2S+2S LiPo battery pack
-
-Optional:
-- Voltage divider for battery monitoring (10k/3.3k resistors)
-- 1k resistor for DFPlayer TX line (recommended)
-
-
-================================================================================
-WIRING DIAGRAM
-================================================================================
-
-Mega → Motor Driver (Cytron MD10C):
-  D13 → DIR1 (Motor 1 Direction)
-  D12 → PWM1 (Motor 1 Speed)
-  D11 → DIR2 (Motor 2 Direction)
-  D10 → PWM2 (Motor 2 Speed)
-  GND → GND (both drivers)
-  Note: Motor power (VM) from battery, logic (VCC) from 5V
-
-Mega → Servos:
-  D2 → Mainbar Servo (Signal)
-  D3 → Head Servo 1 (Signal)
-  D4 → Head Servo 2 (Signal)
-  D5 → Head Servo 3 (Signal)
-  Note: Servo power from BEC/separate 5-6V supply, NOT from Mega!
-
-Mega → DFPlayer Mini:
-  D7 → RX (via 1k resistor recommended)
-  D8 → TX
-  5V → VCC
-  GND → GND
-  Speaker → SPK1/SPK2
-
-Mega → iBus Receiver:
-  D19 (RX1) → iBus signal wire
-  5V → VCC
-  GND → GND
-
-Mega → MPU6050 IMU:
-  SDA (20) → SDA
-  SCL (21) → SCL
-  5V → VCC
-  GND → GND
-
-Mega → Battery Monitor (OPTIONAL):
-  A15 → Voltage divider center point
-
-  Voltage Divider Circuit:
-  Battery+ ──[10kΩ]──┬──[3.3kΩ]── GND
-                     │
-                     └── A15 (Mega)
-
-
-================================================================================
-INITIAL SETUP PROCESS
-================================================================================
-
-Step 1: First Upload
---------------------
-1. Open D_O_printed_droid_rc_ibus_v2.1.ino in Arduino IDE
-2. Select Board: Arduino Mega 2560
-3. Select correct COM port
-4. Upload sketch
-5. Open Serial Monitor (9600 baud)
-6. You'll see: "Send 'c' for IMU calibration or 'm' for menu within 3 seconds..."
-
-
-Step 2: IMU Calibration (CRITICAL!)
------------------------------------
-1. Place D-O in balanced upright position on flat surface
-2. Send 'c' within 3 seconds of boot
-3. Keep D-O PERFECTLY STILL during calibration (5 seconds)
-4. "Calibration saved" confirms success
-5. Settings auto-save to EEPROM
-
-Note: Re-calibrate if balance seems off or after moving the IMU
-
-
-Step 3: Configuration Menu
---------------------------
-Send 'm' via Serial Monitor at any time to access the menu:
-
-=== D-O Configuration Menu ===
+<pre><code>=== CONFIGURATION MENU ===
 1. PID Configuration
 2. Feature Toggles
 3. Battery Settings
 4. Sound Settings
 5. Driving Dynamics
 6. Adaptive PID
-7. Save & Exit
+7. Save &amp; Exit
 8. Factory Reset
-9. Show Current Values
+9. Show Current Values</code></pre>
 
-Example - Setting up RC Mixing Mode:
-1. Send 'm' to enter menu
-2. Send '5' for Driving Dynamics
-3. Follow prompts to configure mixing mode
-4. Send '7' to Save & Exit
+<strong>Access:</strong> Send 'm' via Serial Monitor at any time
 
+<h3>2. RC Mixing Mode Selection (NEW in v2.1.2)</h3>
 
-Step 4: Selecting Setup Mode
-----------------------------
+Choose between two control styles:
+
+<strong>ARCADE MODE (Default - Recommended):</strong>
+<ul>
+<li>CH1 (Right Stick Left/Right) = Steering</li>
+<li>CH2 (Right Stick Up/Down) = Throttle (Forward/Backward)</li>
+<li>One stick controls everything - intuitive like a video game</li>
+<li>Best for standard FlySky transmitter configuration</li>
+</ul>
+
+<strong>TANK MODE (Original):</strong>
+<ul>
+<li>CH1 = Left Motor speed</li>
+<li>CH2 = Right Motor speed</li>
+<li>Each stick controls one motor directly</li>
+<li>Requires mixing on transmitter or custom channel setup</li>
+</ul>
+
+<strong>Configure via:</strong> CLI Menu → 5. Driving Dynamics → RC Mixing Mode
+
+<h3>3. Multiple Setup Modes</h3>
+
+<pre><code>// Mode 0: PWM Only (balance only, external sound controller)
+// Mode 1: Hybrid (iBus drive + PWM sound)
+// Mode 2: Pure iBus (RECOMMENDED - all in one)</code></pre>
+
+<h3>4. Battery Monitoring (Optional)</h3>
+
+Monitors 2S+2S LiPo configuration (6.0V - 8.4V range)
+
+<div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 15px 0;">
+<strong>IMPORTANT:</strong> Battery monitoring is OFF by default!
+Only enable if you have the voltage divider circuit connected.
+
+<ul>
+<li>Without voltage divider: Pin A15 floats and shows random values</li>
+<li>With voltage divider: Accurate battery percentage display</li>
+</ul>
+
+<strong>Enable via:</strong> CLI Menu → 2. Feature Toggles → Battery Monitor
+</div>
+
+<h3>5. Adaptive PID Control</h3>
+
+Automatically adjusts PID parameters based on driving speed:
+
+<ul>
+<li><strong>Slow</strong> (standing/creeping): Higher Kp for stability</li>
+<li><strong>Medium</strong> (normal driving): Balanced settings</li>
+<li><strong>Fast</strong> (quick maneuvers): Lower Kp, responsive handling</li>
+</ul>
+
+<h3>6. Advanced Driving Dynamics</h3>
+
+<ul>
+<li>Motor ramping for smooth acceleration</li>
+<li>Exponential RC curves for precise control</li>
+<li>Dynamic target angle (leans into movement)</li>
+<li>Turn compensation</li>
+<li>Acceleration limiting</li>
+<li>Configurable deadband</li>
+</ul>
+
+<h3>7. Personality Features</h3>
+
+D-O comes alive with:
+<ul>
+<li>Random idle sounds and head movements after 3 seconds</li>
+<li>State reactions (tilt warnings, recovery sounds)</li>
+<li>Mood-based sound selection via RC channel</li>
+</ul>
+
+<hr>
+
+<h2 id="hardware">Hardware Requirements<a href="#top" class="to-top">To top</a></h2>
+
+<h3>Required Components</h3>
+
+<table>
+<thead>
+<tr><th>Component</th><th>Specification</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>Microcontroller</td><td>Arduino Mega 2560</td><td>Required for Serial1 iBus</td></tr>
+<tr><td>RC Receiver</td><td>FlySky FS-iA6B</td><td>iBus protocol required</td></tr>
+<tr><td>IMU</td><td>MPU6050</td><td>Also: MPU6500, MPU9250, MPU6886</td></tr>
+<tr><td>Motor Driver</td><td>Cytron MD10C (2x)</td><td>Or similar H-bridge</td></tr>
+<tr><td>Sound Module</td><td>DFPlayer Mini</td><td>With Micro SD card</td></tr>
+<tr><td>Servos</td><td>4x Standard Servos</td><td>Head (3x) + Mainbar (1x)</td></tr>
+<tr><td>Speaker</td><td>8 Ohm, &lt;3W</td><td>For DFPlayer</td></tr>
+<tr><td>Battery</td><td>2S+2S LiPo</td><td>7.4V - 8.4V</td></tr>
+</tbody>
+</table>
+
+<h3>Optional Components</h3>
+
+<ul>
+<li>Voltage divider for battery monitoring (10k/3.3k resistors)</li>
+<li>1k resistor for DFPlayer TX line (recommended)</li>
+</ul>
+
+<hr>
+
+<h2 id="wiring">Wiring Diagram<a href="#top" class="to-top">To top</a></h2>
+
+<h3>Mega → Motor Driver (Cytron MD10C)</h3>
+
+<table>
+<thead>
+<tr><th>Mega Pin</th><th>Motor Driver</th><th>Function</th></tr>
+</thead>
+<tbody>
+<tr><td>D13</td><td>DIR1</td><td>Motor 1 Direction</td></tr>
+<tr><td>D12</td><td>PWM1</td><td>Motor 1 Speed</td></tr>
+<tr><td>D11</td><td>DIR2</td><td>Motor 2 Direction</td></tr>
+<tr><td>D10</td><td>PWM2</td><td>Motor 2 Speed</td></tr>
+<tr><td>GND</td><td>GND</td><td>Both drivers</td></tr>
+</tbody>
+</table>
+
+<em>Note: Motor power (VM) from battery, logic (VCC) from 5V</em>
+
+<h3>Mega → Servos</h3>
+
+<table>
+<thead>
+<tr><th>Mega Pin</th><th>Servo</th><th>Function</th></tr>
+</thead>
+<tbody>
+<tr><td>D2</td><td>Mainbar Servo</td><td>Balance arm</td></tr>
+<tr><td>D3</td><td>Head Servo 1</td><td>Pitch</td></tr>
+<tr><td>D4</td><td>Head Servo 2</td><td>Yaw</td></tr>
+<tr><td>D5</td><td>Head Servo 3</td><td>Roll</td></tr>
+</tbody>
+</table>
+
+<div style="background-color: #f8d7da; padding: 15px; border-left: 4px solid #dc3545; margin: 15px 0;">
+<strong>WARNING:</strong> Servo power from BEC/separate 5-6V supply, NOT from Mega!
+</div>
+
+<h3>Mega → DFPlayer Mini</h3>
+
+<table>
+<thead>
+<tr><th>Mega Pin</th><th>DFPlayer</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>D7</td><td>RX</td><td>Via 1k resistor recommended</td></tr>
+<tr><td>D8</td><td>TX</td><td></td></tr>
+<tr><td>5V</td><td>VCC</td><td></td></tr>
+<tr><td>GND</td><td>GND</td><td></td></tr>
+<tr><td>-</td><td>SPK1/SPK2</td><td>Speaker connection</td></tr>
+</tbody>
+</table>
+
+<h3>Mega → iBus Receiver</h3>
+
+<table>
+<thead>
+<tr><th>Mega Pin</th><th>Receiver</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>D19 (RX1)</td><td>iBus Signal</td><td>Single wire</td></tr>
+<tr><td>5V</td><td>VCC</td><td></td></tr>
+<tr><td>GND</td><td>GND</td><td></td></tr>
+</tbody>
+</table>
+
+<h3>Mega → MPU6050 IMU</h3>
+
+<table>
+<thead>
+<tr><th>Mega Pin</th><th>MPU6050</th></tr>
+</thead>
+<tbody>
+<tr><td>SDA (20)</td><td>SDA</td></tr>
+<tr><td>SCL (21)</td><td>SCL</td></tr>
+<tr><td>5V</td><td>VCC</td></tr>
+<tr><td>GND</td><td>GND</td></tr>
+</tbody>
+</table>
+
+<h3>Mega → Battery Monitor (OPTIONAL)</h3>
+
+<pre><code>Voltage Divider Circuit:
+Battery+ ──[10kΩ]──┬──[3.3kΩ]── GND
+                   │
+                   └── A15 (Mega)</code></pre>
+
+<hr>
+
+<h2 id="setup">Initial Setup Process<a href="#top" class="to-top">To top</a></h2>
+
+<h3>Step 1: First Upload</h3>
+
+<ol>
+<li>Open <code>D_O_printed_droid_rc_ibus_v2.1.ino</code> in Arduino IDE</li>
+<li>Select Board: Arduino Mega 2560</li>
+<li>Select correct COM port</li>
+<li>Upload sketch</li>
+<li>Open Serial Monitor (9600 baud)</li>
+<li>You'll see: <code>"Send 'c' for IMU calibration or 'm' for menu within 3 seconds..."</code></li>
+</ol>
+
+<h3>Step 2: IMU Calibration (CRITICAL!)</h3>
+
+<ol>
+<li>Place D-O in balanced upright position on flat surface</li>
+<li>Send <code>'c'</code> within 3 seconds of boot</li>
+<li>Keep D-O <strong>PERFECTLY STILL</strong> during calibration (5 seconds)</li>
+<li>"Calibration saved" confirms success</li>
+<li>Settings auto-save to EEPROM</li>
+</ol>
+
+<em>Note: Re-calibrate if balance seems off or after moving the IMU</em>
+
+<h3>Step 3: Configuration Menu</h3>
+
+Send <code>'m'</code> via Serial Monitor at any time to access the menu:
+
+<pre><code>=== D-O Configuration Menu ===
+1. PID Configuration
+2. Feature Toggles
+3. Battery Settings
+4. Sound Settings
+5. Driving Dynamics
+6. Adaptive PID
+7. Save &amp; Exit
+8. Factory Reset
+9. Show Current Values</code></pre>
+
+<strong>Example - Setting up RC Mixing Mode:</strong>
+<ol>
+<li>Send <code>'m'</code> to enter menu</li>
+<li>Send <code>'5'</code> for Driving Dynamics</li>
+<li>Follow prompts to configure mixing mode</li>
+<li>Send <code>'7'</code> to Save &amp; Exit</li>
+</ol>
+
+<h3>Step 4: Selecting Setup Mode</h3>
+
 For new builds, select Pure iBus mode (Mode 2):
 
---- Setup Type Configuration ---
+<pre><code>--- Setup Type Configuration ---
 0 = PWM Only (Balance only, external controller for sound)
 1 = Hybrid (iBus drive + PWM sound on separate pins)
-2 = Pure iBus (RECOMMENDED - all features in one)
+2 = Pure iBus (RECOMMENDED - all features in one)</code></pre>
 
+<hr>
 
-================================================================================
-RC CHANNEL MAPPING
-================================================================================
+<h2 id="channels">RC Channel Mapping<a href="#top" class="to-top">To top</a></h2>
 
-FlySky iBus Channels (v2.1):
+<h3>FlySky iBus Channels (v2.1)</h3>
 
-| Channel | Function              | Notes                           |
-|---------|----------------------|---------------------------------|
-| CH1     | Drive/Steering       | See Mixing Mode below           |
-| CH2     | Drive/Throttle       | See Mixing Mode below           |
-| CH3     | Mainbar Servo        | Assign to switch/dial on TX     |
-| CH4     | Head Servo 1         | Pitch control                   |
-| CH5     | Head Servo 2         | Yaw control                     |
-| CH6     | Head Servo 3         | Roll control                    |
-| CH7     | Sound Mute           | Toggle switch                   |
-| CH8     | Sound Trigger        | Momentary for sounds            |
-| CH9     | Mood Selection       | 3-position switch               |
-| CH10    | Squeak Sounds        | Dial/potentiometer              |
+<table>
+<thead>
+<tr><th>Channel</th><th>Function</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>CH1</td><td>Drive/Steering</td><td>See Mixing Mode</td></tr>
+<tr><td>CH2</td><td>Drive/Throttle</td><td>See Mixing Mode</td></tr>
+<tr><td>CH3</td><td>Mainbar Servo</td><td>Assign to switch/dial on TX</td></tr>
+<tr><td>CH4</td><td>Head Servo 1</td><td>Pitch control</td></tr>
+<tr><td>CH5</td><td>Head Servo 2</td><td>Yaw control</td></tr>
+<tr><td>CH6</td><td>Head Servo 3</td><td>Roll control</td></tr>
+<tr><td>CH7</td><td>Sound Mute</td><td>Toggle switch</td></tr>
+<tr><td>CH8</td><td>Sound Trigger</td><td>Momentary for sounds</td></tr>
+<tr><td>CH9</td><td>Mood Selection</td><td>3-position switch</td></tr>
+<tr><td>CH10</td><td>Squeak Sounds</td><td>Dial/potentiometer</td></tr>
+</tbody>
+</table>
 
+<h3>RC Mixing Modes Explained</h3>
 
-RC Mixing Modes Explained:
+<strong>ARCADE MODE (mixing_mode = 1, DEFAULT):</strong>
+<ul>
+<li>CH1 = Steering (left/right stick movement)</li>
+<li>CH2 = Throttle (forward/backward stick movement)</li>
+</ul>
 
-ARCADE MODE (mixing_mode = 1, DEFAULT):
-  CH1 = Steering (left/right stick movement)
-  CH2 = Throttle (forward/backward stick movement)
+<pre><code>Motor calculation:
+  Left Motor  = Throttle + Steering
+  Right Motor = Throttle - Steering</code></pre>
 
-  Motor calculation:
-    Left Motor  = Throttle + Steering
-    Right Motor = Throttle - Steering
+<em>Best for: Standard FlySky setup, intuitive control</em>
 
-  Best for: Standard FlySky setup, intuitive control
+<strong>TANK MODE (mixing_mode = 0):</strong>
+<ul>
+<li>CH1 = Left Motor speed directly</li>
+<li>CH2 = Right Motor speed directly</li>
+</ul>
 
-TANK MODE (mixing_mode = 0):
-  CH1 = Left Motor speed directly
-  CH2 = Right Motor speed directly
+<em>Best for: Custom transmitter mixing, advanced users</em>
 
-  Best for: Custom transmitter mixing, advanced users
+<hr>
 
-
-================================================================================
-SD CARD SOUND FILES
-================================================================================
+<h2 id="sounds">SD Card Sound Files<a href="#top" class="to-top">To top</a></h2>
 
 Create folder structure on Micro SD card:
 
-/mp3/
+<pre><code>/mp3/
   0001.mp3 - Startup sound ("Battery charged" etc.)
   0002.mp3 - Default/ready sound
   0003.mp3 - Greeting 1
@@ -317,209 +378,244 @@ Create folder structure on Micro SD card:
   0021.mp3 - Tilt warning
   0022.mp3 - Recovery sound
   0023.mp3 - Low battery warning
-  0024-0030.mp3 - Idle sounds
+  0024-0030.mp3 - Idle sounds</code></pre>
 
-Requirements:
-- SD card: FAT16 or FAT32 formatted
-- Filenames: Exactly 4 digits (0001.mp3, not 1.mp3)
-- Format: MP3, 128-320 kbps recommended
-- No subfolders inside /mp3/
+<strong>Requirements:</strong>
+<ul>
+<li>SD card: FAT16 or FAT32 formatted</li>
+<li>Filenames: Exactly 4 digits (0001.mp3, not 1.mp3)</li>
+<li>Format: MP3, 128-320 kbps recommended</li>
+<li>No subfolders inside /mp3/</li>
+</ul>
 
+<hr>
 
-================================================================================
-TROUBLESHOOTING
-================================================================================
+<h2 id="troubleshooting">Troubleshooting<a href="#top" class="to-top">To top</a></h2>
 
-"No DFPlayer found" / No Sound
-------------------------------
-- Check wiring, especially the 1k resistor on TX line
-- Verify SD card is FAT16/FAT32 formatted
-- Ensure files are named correctly (0001.mp3, not 1.mp3)
-- Check speaker connection (SPK1 and SPK2)
-- Try different SD card
+<h3>"No DFPlayer found" / No Sound</h3>
+<ul>
+<li>Check wiring, especially the 1k resistor on TX line</li>
+<li>Verify SD card is FAT16/FAT32 formatted</li>
+<li>Ensure files are named correctly (0001.mp3, not 1.mp3)</li>
+<li>Check speaker connection (SPK1 and SPK2)</li>
+<li>Try different SD card</li>
+</ul>
 
+<h3>Poor Balance / Tips Over Immediately</h3>
+<ol>
+<li>Run IMU calibration (<code>'c'</code> command at boot)</li>
+<li>Check that D-O is placed upright during calibration</li>
+<li>Adjust PID values via menu:
+<ul>
+<li>Oscillating rapidly: Decrease KP, increase KD</li>
+<li>Too wobbly/slow response: Increase KP</li>
+<li>Drifting slowly: Small increase to KI</li>
+</ul></li>
+<li>Default values: KP=25, KI=0, KD=0.8</li>
+<li>Check motor wiring (both should spin same direction for forward)</li>
+</ol>
 
-Poor Balance / Tips Over Immediately
-------------------------------------
-1. Run IMU calibration ('c' command at boot)
-2. Check that D-O is placed upright during calibration
-3. Adjust PID values via menu:
-   - Oscillating rapidly: Decrease KP, increase KD
-   - Too wobbly/slow response: Increase KP
-   - Drifting slowly: Small increase to KI
-4. Default values: KP=25, KI=0, KD=0.8
-5. Check motor wiring (both should spin same direction for forward)
+<h3>No RC Response</h3>
+<ul>
+<li>Verify iBus wire connected to Pin 19 (RX1)</li>
+<li>Check transmitter/receiver binding (solid LED on receiver)</li>
+<li>Ensure receiver is powered (5V from Mega or BEC)</li>
+<li>Verify iBus output is enabled on receiver</li>
+<li>Check if Setup Mode is correct (Mode 2 for Pure iBus)</li>
+</ul>
 
+<h3>Steering Too Fast / Driving Too Slow</h3>
+<p>This is likely a Mixing Mode issue:</p>
+<ol>
+<li>Enter CLI menu (<code>'m'</code>)</li>
+<li>Go to Driving Dynamics (option 5)</li>
+<li>Check current Mixing Mode</li>
+<li>ARCADE mode (1): CH2=throttle, CH1=steering - RECOMMENDED</li>
+<li>TANK mode (0): CH1=left motor, CH2=right motor</li>
+</ol>
 
-No RC Response
---------------
-- Verify iBus wire connected to Pin 19 (RX1)
-- Check transmitter/receiver binding (solid LED on receiver)
-- Ensure receiver is powered (5V from Mega or BEC)
-- Verify iBus output is enabled on receiver
-- Check if Setup Mode is correct (Mode 2 for Pure iBus)
+<h3>Battery Shows Wrong Voltage (1.8V, 2.5V, random values)</h3>
+<ul>
+<li>Battery monitoring reads A15 pin</li>
+<li>Without voltage divider connected, pin floats = random values</li>
+<li><strong>Solution 1:</strong> Disable battery monitoring (Menu → Feature Toggles)</li>
+<li><strong>Solution 2:</strong> Connect proper voltage divider circuit</li>
+</ul>
 
+<h3>Servos Jittering or Not Moving</h3>
+<ul>
+<li>Servos need separate power supply (5-6V BEC)</li>
+<li>DO NOT power servos from Mega 5V pin (not enough current)</li>
+<li>Only signal wire goes to Mega GPIO</li>
+<li>Check servo pin assignments match your wiring</li>
+</ul>
 
-Steering Too Fast / Driving Too Slow (or vice versa)
----------------------------------------------------
-This is likely a Mixing Mode issue:
-1. Enter CLI menu ('m')
-2. Go to Driving Dynamics (option 5)
-3. Check current Mixing Mode
-4. ARCADE mode (1): CH2=throttle, CH1=steering - RECOMMENDED
-5. TANK mode (0): CH1=left motor, CH2=right motor
+<h3>"EMERGENCY STOP" Triggers Immediately</h3>
+<ul>
+<li>D-O tilted more than 45 degrees at startup</li>
+<li>IMU not calibrated or miscalibrated</li>
+<li>IMU mounted incorrectly (check orientation)</li>
+<li>Run calibration with D-O perfectly upright</li>
+</ul>
 
+<hr>
 
-Battery Shows Wrong Voltage (1.8V, 2.5V, random values)
-------------------------------------------------------
-- Battery monitoring reads A15 pin
-- Without voltage divider connected, pin floats = random values
-- Solution 1: Disable battery monitoring (Menu → Feature Toggles)
-- Solution 2: Connect proper voltage divider circuit
+<h2 id="cli">CLI Command Reference<a href="#top" class="to-top">To top</a></h2>
 
+<h3>Serial Commands (9600 baud)</h3>
 
-Servos Jittering or Not Moving
-------------------------------
-- Servos need separate power supply (5-6V BEC)
-- DO NOT power servos from Mega 5V pin (not enough current)
-- Only signal wire goes to Mega GPIO
-- Check servo pin assignments match your wiring
+<table>
+<thead>
+<tr><th>Command</th><th>Function</th></tr>
+</thead>
+<tbody>
+<tr><td><code>c</code></td><td>Start IMU calibration (within 3s of boot)</td></tr>
+<tr><td><code>m</code></td><td>Enter configuration menu</td></tr>
+<tr><td><code>d</code></td><td>Toggle debug output on/off</td></tr>
+<tr><td><code>s</code></td><td>Show current sensor values</td></tr>
+<tr><td><code>r</code></td><td>Reset to factory defaults</td></tr>
+</tbody>
+</table>
 
+<h3>Configuration Menu Options</h3>
 
-"EMERGENCY STOP" Triggers Immediately
-------------------------------------
-- D-O tilted more than 45 degrees at startup
-- IMU not calibrated or miscalibrated
-- IMU mounted incorrectly (check orientation)
-- Run calibration with D-O perfectly upright
+<strong>1. PID Configuration</strong>
+<ul>
+<li>KP (Proportional): 0-100, default 25</li>
+<li>KI (Integral): 0-10, default 0</li>
+<li>KD (Derivative): 0-10, default 0.8</li>
+<li>Target Angle: -10 to +10, default varies</li>
+</ul>
 
+<strong>2. Feature Toggles</strong>
+<ul>
+<li>Motor Ramping: Smooth acceleration (ON/OFF)</li>
+<li>Adaptive PID: Speed-based PID adjustment (ON/OFF)</li>
+<li>Dynamic Angle: Lean into movement (ON/OFF)</li>
+<li>Idle Actions: Random sounds/movements (ON/OFF)</li>
+<li>State Reactions: Tilt warnings etc. (ON/OFF)</li>
+<li>Battery Monitor: Voltage monitoring (ON/OFF) - <strong>OFF by default!</strong></li>
+</ul>
 
-================================================================================
-CLI COMMAND REFERENCE
-================================================================================
+<strong>3. Battery Settings</strong>
+<ul>
+<li>Warning Voltage: Default 6.8V</li>
+<li>Critical Voltage: Default 6.4V</li>
+<li>Voltage Divider Factor: Calibration value</li>
+</ul>
 
-Serial Commands (9600 baud):
+<strong>4. Sound Settings</strong>
+<ul>
+<li>Volume: 0-30, default 25</li>
+<li>Min Sound Interval: Prevents overlap</li>
+<li>Idle Interval Min/Max: Random idle timing</li>
+</ul>
 
-| Command | Function                                    |
-|---------|---------------------------------------------|
-| c       | Start IMU calibration (within 3s of boot)   |
-| m       | Enter configuration menu                    |
-| d       | Toggle debug output on/off                  |
-| s       | Show current sensor values                  |
-| r       | Reset to factory defaults                   |
+<strong>5. Driving Dynamics</strong>
+<ul>
+<li>Ramp Rate: 0.01-1.0, acceleration smoothing</li>
+<li>Max Acceleration: Speed change limit</li>
+<li>Max Lean Angle: Forward lean limit</li>
+<li>RC Deadband: Center dead zone</li>
+<li>Expo Factor: Stick response curve</li>
+<li>Mixing Mode: 0=Tank, 1=Arcade (default)</li>
+</ul>
 
+<strong>6. Adaptive PID</strong>
+<ul>
+<li>Slow/Medium/Fast KP values</li>
+<li>Slow/Medium/Fast KD values</li>
+</ul>
 
-Configuration Menu Options:
+<hr>
 
-1. PID Configuration
-   - KP (Proportional): 0-100, default 25
-   - KI (Integral): 0-10, default 0
-   - KD (Derivative): 0-10, default 0.8
-   - Target Angle: -10 to +10, default varies
+<h2 id="upgrade">Upgrading from Older Versions<a href="#top" class="to-top">To top</a></h2>
 
-2. Feature Toggles
-   - Motor Ramping: Smooth acceleration (ON/OFF)
-   - Adaptive PID: Speed-based PID adjustment (ON/OFF)
-   - Dynamic Angle: Lean into movement (ON/OFF)
-   - Idle Actions: Random sounds/movements (ON/OFF)
-   - State Reactions: Tilt warnings etc. (ON/OFF)
-   - Battery Monitor: Voltage monitoring (ON/OFF) - OFF by default!
+<h3>From v1.1 to v2.1</h3>
+<ol>
+<li>Upload v2.1 sketch</li>
+<li>Run IMU calibration (<code>'c'</code>)</li>
+<li>Configure via menu (<code>'m'</code>)</li>
+<li>All settings saved to EEPROM</li>
+</ol>
 
-3. Battery Settings
-   - Warning Voltage: Default 6.8V
-   - Critical Voltage: Default 6.4V
-   - Voltage Divider Factor: Calibration value
+<h3>From v2.0 to v2.1</h3>
+<ol>
+<li>Upload v2.1 sketch</li>
+<li>Previous EEPROM settings should be compatible</li>
+<li>New features (Mixing Mode) will use defaults</li>
+<li>Verify settings via menu</li>
+</ol>
 
-4. Sound Settings
-   - Volume: 0-30, default 25
-   - Min Sound Interval: Prevents overlap
-   - Idle Interval Min/Max: Random idle timing
+<hr>
 
-5. Driving Dynamics
-   - Ramp Rate: 0.01-1.0, acceleration smoothing
-   - Max Acceleration: Speed change limit
-   - Max Lean Angle: Forward lean limit
-   - RC Deadband: Center dead zone
-   - Expo Factor: Stick response curve
-   - Mixing Mode: 0=Tank, 1=Arcade (default)
+<h2 id="best-practices">Best Practices<a href="#top" class="to-top">To top</a></h2>
 
-6. Adaptive PID
-   - Slow/Medium/Fast KP values
-   - Slow/Medium/Fast KD values
+<ol>
+<li>Always calibrate IMU on perfectly flat, stable surface</li>
+<li>Start with default PID values before tuning</li>
+<li>Use Arcade mixing mode for easiest control</li>
+<li>Keep battery monitoring OFF unless voltage divider is connected</li>
+<li>Test balance without head first, then add head</li>
+<li>Use Pure iBus mode (2) for all features in one controller</li>
+<li>Save configuration after changes (Menu option 7)</li>
+</ol>
 
+<hr>
 
-================================================================================
-UPGRADING FROM OLDER VERSIONS
-================================================================================
+<h2 id="version-history">Version History<a href="#top" class="to-top">To top</a></h2>
 
-From v1.1 to v2.1:
-1. Upload v2.1 sketch
-2. Run IMU calibration ('c')
-3. Configure via menu ('m')
-4. All settings saved to EEPROM
+<strong>v2.1.2 (December 2024):</strong>
+<ul>
+<li>Added RC Mixing Mode selection (Arcade/Tank)</li>
+<li>Battery monitoring OFF by default</li>
+<li>Improved documentation</li>
+</ul>
 
-From v2.0 to v2.1:
-1. Upload v2.1 sketch
-2. Previous EEPROM settings should be compatible
-3. New features (Mixing Mode) will use defaults
-4. Verify settings via menu
+<strong>v2.1.1:</strong>
+<ul>
+<li>Bug fixes and stability improvements</li>
+<li>Enhanced adaptive PID</li>
+</ul>
 
+<strong>v2.1.0:</strong>
+<ul>
+<li>Complete CLI configuration system</li>
+<li>Multiple setup modes</li>
+<li>Adaptive PID control</li>
+<li>Personality features</li>
+</ul>
 
-================================================================================
-BEST PRACTICES
-================================================================================
+<strong>v2.0.0:</strong>
+<ul>
+<li>Initial major rewrite</li>
+<li>Runtime configuration</li>
+<li>Battery monitoring</li>
+</ul>
 
-1. Always calibrate IMU on perfectly flat, stable surface
-2. Start with default PID values before tuning
-3. Use Arcade mixing mode for easiest control
-4. Keep battery monitoring OFF unless voltage divider is connected
-5. Test balance without head first, then add head
-6. Use Pure iBus mode (2) for all features in one controller
-7. Save configuration after changes (Menu option 7)
+<hr>
 
+<h2 id="community">Community &amp; Support<a href="#top" class="to-top">To top</a></h2>
 
-================================================================================
-VERSION HISTORY
-================================================================================
+<p><strong>Website:</strong> <a href="https://www.printed-droid.com" target="_blank">www.printed-droid.com</a></p>
+<p><strong>Facebook:</strong> <a href="https://www.facebook.com/groups/printeddroid/" target="_blank">Printed Droid Community</a></p>
 
-v2.1.2 (December 2024):
-- Added RC Mixing Mode selection (Arcade/Tank)
-- Battery monitoring OFF by default
-- Improved documentation
+<strong>For help:</strong>
+<ol>
+<li>Check troubleshooting section above</li>
+<li>Search Facebook group for similar issues</li>
+<li>Post in Facebook group with:
+<ul>
+<li>Version number (v2.1.2)</li>
+<li>What you've tried</li>
+<li>Serial Monitor output if applicable</li>
+<li>Photos/videos of wiring</li>
+</ul></li>
+</ol>
 
-v2.1.1:
-- Bug fixes and stability improvements
-- Enhanced adaptive PID
+<hr>
 
-v2.1.0:
-- Complete CLI configuration system
-- Multiple setup modes
-- Adaptive PID control
-- Personality features
-
-v2.0.0:
-- Initial major rewrite
-- Runtime configuration
-- Battery monitoring
-
-
-================================================================================
-COMMUNITY & SUPPORT
-================================================================================
-
-Website: www.printed-droid.com
-Facebook: https://www.facebook.com/groups/printeddroid/
-
-For help:
-1. Check troubleshooting section above
-2. Search Facebook group for similar issues
-3. Post in Facebook group with:
-   - Version number (v2.1.2)
-   - What you've tried
-   - Serial Monitor output if applicable
-   - Photos/videos of wiring
-
-
-================================================================================
-Remember: With iBus v2.1, one Mega does everything!
-================================================================================
+<div style="text-align: center; padding: 20px; background-color: #f0f0f0; margin-top: 30px;">
+<h3>Remember: With iBus v2.1, one Mega does everything!</h3>
+<p><em>May the Force be with your D-O!</em></p>
+</div>
