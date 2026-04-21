@@ -18,7 +18,7 @@
  *
  * NEW IN V2.0:
  * - Serial configuration menu with EEPROM storage
- * - Battery voltage monitoring (2x 2S LiPo in series)
+ * - Battery voltage monitoring (2x 2S LiPo in series = 4S, 14.8V nominal)
  * - Motor ramping for smooth acceleration
  * - Idle action system with random animations
  * - State-based sound reactions (tilt warnings, etc.)
@@ -146,10 +146,10 @@ struct Configuration {
   bool state_reactions_enabled = true;
   bool battery_monitor_enabled = false;
   
-  // Battery Configuration (2x 2S = 8.4V full, 6.0V empty)
-  float battery_warning = 6.8;    // ~3.4V per cell
-  float battery_critical = 6.4;   // ~3.2V per cell
-  float voltage_divider = 4.03;   // Calibration factor
+  // Battery Configuration (2x 2S in series = 4S, 16.8V full, 12.0V empty at 3.0V/cell)
+  float battery_warning = 13.6;   // ~3.4V per cell
+  float battery_critical = 12.8;  // ~3.2V per cell
+  float voltage_divider = 4.03;   // Hardware divider 10k/3.3k for 4S (max ~20V at A15=5V)
   
   // Sound Configuration
   uint8_t sound_volume = 25;
@@ -637,10 +637,10 @@ void configureFeatures() {
 
 void configureBattery() {
   Serial.println(F("\n--- Battery Settings ---"));
-  Serial.println(F("(For 2x 2S LiPo in series = 8.4V full)"));
+  Serial.println(F("(For 2x 2S LiPo in series = 4S total, 16.8V full)"));
   
-  config.battery_warning = getFloatInput(F("Warning Voltage"), config.battery_warning, 6.0, 8.4);
-  config.battery_critical = getFloatInput(F("Critical Voltage"), config.battery_critical, 6.0, 8.4);
+  config.battery_warning = getFloatInput(F("Warning Voltage (4S, e.g. 13.6)"), config.battery_warning, 10.0, 17.0);
+  config.battery_critical = getFloatInput(F("Critical Voltage (4S, e.g. 12.8)"), config.battery_critical, 10.0, 17.0);
   config.voltage_divider = getFloatInput(F("Voltage Divider Factor"), config.voltage_divider, 1.0, 10.0);
   
   // Test current reading

@@ -2,7 +2,11 @@
 
 ![Version](https://img.shields.io/badge/version-2.1.7-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
-![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
+![Status](https://img.shields.io/badge/status-legacy-yellow.svg)
+
+> **⚠ Legacy.** Für Neu-Aufbauten verwende [`D-O_ibus_v3.4`](../D-O_ibus_v3.4/). v2.1 wird nur noch für V1.6-Installationen gepflegt, bei denen ein externer Arduino Nano am DFPlayer verdrahtet bleibt (zusammen mit [`D_O_Nano_Sketch_v2`](../D_O_Nano_Sketch_v2/)). Sketch-Übersicht und Empfehlungs-Matrix: siehe [`../README.md`](../README.md).
+>
+> **Bekannte Bugs in v2.1** (praxisrelevant, aber nicht kritisch — alle in v3.4 gefixt): RC-Shaping kann bei Voll-Stick-Auslenkung und `expo_factor > 0` den Ausgangsbereich überschreiten. Idle-Animationen laufen nach Signal-Verlust weiter. Details in [`../BUGFIXES.md`](../BUGFIXES.md) #1.
 
 **Advanced control system for self-balancing D-O droid replica from Star Wars**
 
@@ -189,7 +193,7 @@ This fixes the issue where forward/backward driving was much slower than turning
 | **Sound Module** | DFPlayer Mini | With Micro SD card (FAT32) |
 | **RC Receiver** | iBus-compatible or PWM | FlySky FS-iA6B recommended |
 | **Servos** | 4x Standard Servos | SG90 or similar |
-| **Battery** | 2x 2S LiPo in series | 8.4V full, 6.0V empty |
+| **Battery** | 2x 2S LiPo in series (4S total) | 16.8V full, 14.8V nominal, 12.0V empty |
 | **Voltage Divider** | 10kΩ + 3.3kΩ resistors | For battery monitoring on A15 |
 | **Speaker** | 8 Ohm, <3W | For DFPlayer audio output |
 
@@ -653,8 +657,7 @@ Company.
 ### Contributing
 
 Found a bug or have an improvement?
-- Report issues on GitHub
-- Share your builds in the Facebook group!
+- Share your builds and feedback in the Facebook group
 
 ---
 

@@ -207,7 +207,7 @@ This release brings feature parity with v2.1 while maintaining v3's advanced arc
 | **Sound Module** | DFPlayer Mini | With Micro SD card (FAT32) |
 | **RC Receiver** | iBus-compatible or PWM | FlySky FS-iA6B recommended |
 | **Servos** | 4x Standard Servos | SG90 or similar |
-| **Battery** | 2x 2S LiPo in series | 8.4V full, 6.0V empty |
+| **Battery** | 2x 2S LiPo in series (4S total) | 16.8V full, 14.8V nominal, 12.0V empty |
 | **Voltage Divider** | 10kΩ + 3.3kΩ resistors | For battery monitoring on A15 |
 | **Speaker** | 8 Ohm, <3W | For DFPlayer audio output |
 
@@ -394,7 +394,7 @@ Required Libraries:
 ### Step 3: Upload Sketch
 
 1. Connect Arduino Mega via USB
-2. Open `D_O_printed_droid_rc_ibus_v3.ino`
+2. Open `D_O_printed_droid_rc_ibus_v3.4.ino`
 3. Click **Upload** (Ctrl+U)
 4. Wait for "Done uploading" message
 
@@ -667,8 +667,7 @@ Company.
 ### Contributing
 
 Found a bug or have an improvement?
-- Report issues on GitHub
-- Share your builds in the Facebook group!
+- Share your builds and feedback in the Facebook group
 
 ---
 
