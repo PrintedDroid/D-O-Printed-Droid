@@ -2,7 +2,9 @@
 
 ![Version](https://img.shields.io/badge/version-1.1-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
-![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
+![Status](https://img.shields.io/badge/status-archive-lightgrey.svg)
+
+> **⚠ Archiv / historische Referenz.** Für Neu-Aufbauten verwende [`D-O_ibus_v3.4`](../D-O_ibus_v3.4/). Dieser Sketch (2020-11, Reinhard Stockinger) ist die Ur-iBus-Version. Pin-kompatibel mit V1.6 / V1.7 und damit lauffähig, aber ohne CLI, EEPROM, Battery-Monitoring oder Idle-System. Sketch-Übersicht und Empfehlungs-Matrix: siehe [`../README.md`](../README.md).
 
 **Original iBus control system for self-balancing D-O droid replica from Star Wars**
 
@@ -51,7 +53,7 @@ Designed for builders who want a proven, stable foundation for their D-O build.
 |-----------|--------------|-------|
 | **Microcontroller** | Arduino Mega 2560 | Required for Serial1 (iBus) |
 | **IMU** | MPU6050 | I2C address 0x68 |
-| **Motor Driver** | Cytron MD10C (2x) | Or similar dual H-bridge |
+| **Motor Driver** | Cytron MDD10A | Or similar dual H-bridge |
 | **Sound Module** | DFPlayer Mini | With Micro SD card (FAT32) |
 | **RC Receiver** | iBus-compatible | FlySky FS-iA6B recommended |
 | **Servos** | 4x Standard Servos | SG90 or similar |
@@ -422,8 +424,7 @@ Company.
 ### Contributing
 
 Found a bug or have an improvement?
-- Report issues on GitHub
-- Share your builds in the Facebook group!
+- Share your builds and feedback in the Facebook group
 
 ---
 
