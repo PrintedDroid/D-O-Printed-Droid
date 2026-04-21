@@ -111,12 +111,10 @@ Sound switches on the Nano (legacy V1.6 only):
 
 ## Manuals
 
-Full user manual and developer reference (EN / DE) as PDF in [`generate docs/`](generate%20docs/):
+Full user manual (EN / DE) as PDF, in the project root:
 
-- `D-O_Control_&_Power_Board_System_Documentation_v2.1.pdf` — user handbook
-- `D-O_Control_&_Power_Board_System_Documentation_v2.1_DE.pdf` — Nutzerhandbuch
-- `D-O_Control_&_Power_Board_Developer_Reference_v2.1.pdf` — developer reference
-- `D-O_Control_&_Power_Board_Developer_Reference_v2.1_DE.pdf` — Entwickler-Referenz
+- [D-O_Control_&_Power_Board_System_Documentation_v2.1.pdf](D-O_Control_&_Power_Board_System_Documentation_v2.1.pdf) — user handbook
+- [D-O_Control_&_Power_Board_System_Documentation_v2.1_DE.pdf](D-O_Control_&_Power_Board_System_Documentation_v2.1_DE.pdf) — Nutzerhandbuch
 
 ---
 
