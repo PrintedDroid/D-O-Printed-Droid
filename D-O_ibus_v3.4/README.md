@@ -205,7 +205,7 @@ This release brings feature parity with v2.1 while maintaining v3's advanced arc
 | **IMU** | MPU6050 or compatible | I2C address 0x68 or 0x69 |
 | **Motor Driver** | Cytron MD10C (2x) | Or similar dual H-bridge |
 | **Sound Module** | DFPlayer Mini | With Micro SD card (FAT32) |
-| **RC Receiver** | iBus-compatible or PWM | FlySky FS-iA6B recommended |
+| **RC Receiver** | 10-channel iBus-capable or PWM | FlySky FS-RX2A Pro (10 CH). Many standard PWM receivers also expose an iBus output — use it to cut cabling. FS-iA6B is only 6 CH and will not cover the full D-O channel map. |
 | **Servos** | 4x Standard Servos | SG90 or similar |
 | **Battery** | 2x 2S LiPo in series (4S total) | 16.8V full, 14.8V nominal, 12.0V empty |
 | **Voltage Divider** | 10kΩ + 3.3kΩ resistors | For battery monitoring on A15 |
