@@ -4,9 +4,9 @@
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![Status](https://img.shields.io/badge/status-legacy-yellow.svg)
 
-> **⚠ Legacy.** Für Neu-Aufbauten verwende [`D-O_ibus_v3.4`](../D-O_ibus_v3.4/). v2.1 wird nur noch für V1.6-Installationen gepflegt, bei denen ein externer Arduino Nano am DFPlayer verdrahtet bleibt (zusammen mit [`D_O_Nano_Sketch_v2`](../D_O_Nano_Sketch_v2/)). Sketch-Übersicht und Empfehlungs-Matrix: siehe [`../README.md`](../README.md).
+> **⚠ Legacy.** For new builds, use [`D-O_ibus_v3.4`](../D-O_ibus_v3.4/). v2.1 is maintained only for V1.6 installs where an external Arduino Nano stays wired to the DFPlayer (paired with [`D_O_Nano_Sketch_v2`](../D_O_Nano_Sketch_v2/)). Sketch inventory and recommendation matrix: see [`../README.md`](../README.md).
 >
-> **Bekannte Bugs in v2.1** (praxisrelevant, aber nicht kritisch — alle in v3.4 gefixt): RC-Shaping kann bei Voll-Stick-Auslenkung und `expo_factor > 0` den Ausgangsbereich überschreiten. Idle-Animationen laufen nach Signal-Verlust weiter. Details in [`../BUGFIXES.md`](../BUGFIXES.md) #1.
+> **Known bugs in v2.1** (real but not critical — both fixed in v3.4): RC shaping can exceed the output range at full-stick with `expo_factor > 0`. Idle animations keep firing after signal loss. Details in [`../BUGFIXES.md`](../BUGFIXES.md) #1.
 
 **Advanced control system for self-balancing D-O droid replica from Star Wars**
 
@@ -191,7 +191,7 @@ This fixes the issue where forward/backward driving was much slower than turning
 | **IMU** | MPU6050 or compatible | I2C address 0x68 or 0x69 |
 | **Motor Driver** | Cytron MD10C (2x) | Or similar dual H-bridge |
 | **Sound Module** | DFPlayer Mini | With Micro SD card (FAT32) |
-| **RC Receiver** | iBus-compatible or PWM | FlySky FS-iA6B recommended |
+| **RC Receiver** | 10-channel iBus-capable or PWM | FlySky FS-RX2A Pro (10 CH) — FS-iA6B is only 6 CH |
 | **Servos** | 4x Standard Servos | SG90 or similar |
 | **Battery** | 2x 2S LiPo in series (4S total) | 16.8V full, 14.8V nominal, 12.0V empty |
 | **Voltage Divider** | 10kΩ + 3.3kΩ resistors | For battery monitoring on A15 |
@@ -238,7 +238,7 @@ This fixes the issue where forward/backward driving was much slower than turning
 - All 10 channels via iBus protocol
 - Cleanest wiring - only 1 signal wire!
 - All features available
-- Requires iBus-compatible receiver (e.g., FlySky FS-iA6B)
+- Requires a 10-channel iBus-capable receiver (e.g., FlySky FS-RX2A Pro). The FS-iA6B only provides 6 channels and will not cover the full D-O channel map — most standard 10-channel FlySky PWM receivers also expose an iBus output pin, which you can use to feed the Mega with a single wire.
 
 ---
 

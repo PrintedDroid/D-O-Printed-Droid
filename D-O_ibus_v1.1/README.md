@@ -4,7 +4,7 @@
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![Status](https://img.shields.io/badge/status-archive-lightgrey.svg)
 
-> **⚠ Archiv / historische Referenz.** Für Neu-Aufbauten verwende [`D-O_ibus_v3.4`](../D-O_ibus_v3.4/). Dieser Sketch (2020-11, Reinhard Stockinger) ist die Ur-iBus-Version. Pin-kompatibel mit V1.6 / V1.7 und damit lauffähig, aber ohne CLI, EEPROM, Battery-Monitoring oder Idle-System. Sketch-Übersicht und Empfehlungs-Matrix: siehe [`../README.md`](../README.md).
+> **⚠ Archive / historical reference.** For new builds, use [`D-O_ibus_v3.4`](../D-O_ibus_v3.4/). This sketch (2020-11, Reinhard Stockinger) is the original iBus version. Pin-compatible with V1.6 / V1.7 and still runs, but has no CLI, no EEPROM, no battery monitor, and no idle system. Sketch inventory and recommendation matrix: see [`../README.md`](../README.md).
 
 **Original iBus control system for self-balancing D-O droid replica from Star Wars**
 
@@ -55,7 +55,7 @@ Designed for builders who want a proven, stable foundation for their D-O build.
 | **IMU** | MPU6050 | I2C address 0x68 |
 | **Motor Driver** | Cytron MDD10A | Or similar dual H-bridge |
 | **Sound Module** | DFPlayer Mini | With Micro SD card (FAT32) |
-| **RC Receiver** | iBus-compatible | FlySky FS-iA6B recommended |
+| **RC Receiver** | 10-channel iBus-capable | FlySky FS-RX2A Pro (10 CH) — FS-iA6B is only 6 CH |
 | **Servos** | 4x Standard Servos | SG90 or similar |
 | **Speaker** | 8 Ohm, <3W | For DFPlayer audio output |
 
