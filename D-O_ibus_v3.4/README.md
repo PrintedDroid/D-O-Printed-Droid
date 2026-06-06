@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - Universal Controller v3.4
 
-![Version](https://img.shields.io/badge/version-3.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.4.1-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -17,7 +17,10 @@ Designed for builders who want the most advanced and reliable D-O control system
 ### Key Features
 
 - **🎯 Advanced IMU Self-Balancing** - Precise PID control with micros() timing
-- **📡 Two Simple Setup Modes** - PWM Only or Pure iBus (no hybrid confusion)
+- **📡 Two Simple Setup Modes** - PWM Only or Serial RC (iBus or SBUS)
+- **📶 iBus Baud Auto-Detection** - finds 115200 or 9600 automatically at boot, no manual setting
+- **🛰️ SBUS Support** - Futaba / FrSky receivers via menu option `r` (needs external inverter)
+- **🔎 RC Channel Test** - live receiver monitor (menu `t`) to verify signal and channel mapping
 - **⚙️ Interactive CLI Menu** - Configure all settings via Serial Monitor
 - **💾 EEPROM Persistence** - All settings saved across reboots
 - **🛡️ Watchdog Timer** - Automatic crash recovery (2s timeout)
@@ -26,7 +29,7 @@ Designed for builders who want the most advanced and reliable D-O control system
 - **🎭 Idle Animations** - Random sounds and head movements when idle
 - **📈 Adaptive PID** - Speed-dependent PID tuning for optimal control
 - **🔄 Dynamic Lean Angle** - Natural forward lean when driving
-- **🔊 DFPlayer Sound System** - 30+ sound effects with state reactions
+- **🔊 DFPlayer Sound System** - 30+ sound effects with state reactions (filename-based playback — SD card copy order no longer matters)
 - **✅ IMU Clone Support** - Works with MPU6050/6500/9250/6886
 - **⚡ I2C Fast Mode** - 400kHz for faster IMU readings
 - **🔌 Pin-Compatible** - Works with v1.1/v2.1 wiring
@@ -55,6 +58,24 @@ Designed for builders who want the most advanced and reliable D-O control system
 ---
 
 ## 📝 Changelog
+
+### Version 3.4.1 (June 2026)
+
+**SBUS support, smarter sound addressing, and iBus diagnostics**
+
+*Receiver & diagnostics:*
+- **iBus baudrate auto-detection**: at boot the controller automatically tries 115200 and 9600 and locks onto whichever your receiver uses — no manual baud setting needed. The transmitter must be switched on during startup; if no signal is seen it falls back to the configured value.
+- **RC Channel Test** (menu option `t`): live receiver monitor showing all channels. It reports `SIGNAL: OK` or `SIGNAL: NONE` with a wiring checklist — the fastest way to confirm the receiver works and to see which stick/switch maps to which channel. Works in both iBus and PWM mode.
+- **SBUS receiver support** (Futaba / FrSky): switch between iBus and SBUS at runtime via menu option `r`. SBUS requires an external hardware inverter between the receiver's SBUS output and Mega pin D19 (the Mega cannot invert the signal itself) — see the handbook for the wiring.
+
+*Sound & storage:*
+- **Filename-based sound playback**: the DFPlayer now finds tracks by filename (`/mp3/0001.mp3` …), so the order in which you copy files onto the SD card no longer matters.
+
+*Other:*
+- **Status screen** (menu `9`) now shows the active RC protocol and, on SBUS, a FAILSAFE flag.
+- **Upgrade note:** the EEPROM layout changed (magic `0xD044`). The first boot after upgrading resets all settings to defaults — re-run IMU calibration with `c` and re-apply your settings via `m`.
+
+---
 
 ### Version 3.4.0 (April 2026)
 
@@ -238,15 +259,16 @@ This release brings feature parity with v2.1 while maintaining v3's advanced arc
 - DFPlayer ENABLED on Mega (no external Nano needed!)
 - Compatible with original D-O v2 Mega sketch
 
-### Mode 1: iBus (Recommended)
+### Mode 1: Serial RC — iBus or SBUS (Recommended)
 
-**Best for:** Modern setups with FlySky receivers
+**Best for:** Modern setups with FlySky (iBus) or Futaba/FrSky (SBUS) receivers
 
-- All 10 channels via iBus protocol
-- Cleanest wiring - only 1 signal wire!
+- All 10 channels via a single serial signal wire (cleanest wiring)
 - All features available
 - DFPlayer ENABLED on Mega
-- Configurable baudrate (9600 or 115200)
+- **iBus baudrate auto-detected at boot** (115200 or 9600 — no manual setting)
+- **SBUS** selectable via menu option `r` — requires an external hardware inverter to Mega D19 (see handbook)
+- Use the **RC Channel Test** (menu `t`) to verify the receiver before driving
 
 ---
 
@@ -441,8 +463,10 @@ Send `m` at any time to open the full configuration menu.
 7. Feature Toggles
 8. IMU Calibration
 9. Show Current Status
+r. RC Protocol (iBus / SBUS)
 m. Motor Test & Config
 i. IMU Axis Test (live angles)
+t. RC Channel Test (live receiver monitor)
 s. Save and Exit
 0. Exit without Saving
 ```
@@ -451,7 +475,7 @@ s. Save and Exit
 
 | Option | What it configures |
 |--------|-------------------|
-| **1** | Setup Mode (0=PWM, 1=iBus), iBus Baudrate |
+| **1** | Setup Mode (0=PWM, 1=Serial iBus/SBUS), iBus baudrate (auto-detected) |
 | **2** | KP, KI, KD, Target Angle, Max Integral |
 | **3** | KP/KD values for Slow/Medium/Fast speeds |
 | **4** | Ramp Rate, Max Lean, Deadband, Expo, **Mixing Mode** |
@@ -459,7 +483,9 @@ s. Save and Exit
 | **6** | Volume (0-30), Sound Intervals |
 | **7** | Mainbar Correction, Ramping, Adaptive PID, Dynamic Angle, Idle Actions, State Reactions, Battery Monitor, Servos, Watchdog |
 | **8** | Run IMU calibration routine |
-| **9** | Display current system status |
+| **9** | Display current system status (incl. active RC protocol) |
+| **r** | Switch RC protocol: iBus / SBUS (SBUS needs external inverter) |
+| **t** | RC Channel Test — live receiver monitor (signal + channel check) |
 
 ---
 
@@ -518,12 +544,13 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Universal Controller v3.4.0 ===
+   === D-O Universal Controller v3.4.1 ===
    Configuration loaded
    Setup Mode: iBus (Recommended)
    IMU found at 0x68
    WHO_AM_I: 0x68 (MPU6050)
-   iBus @ 115200 baud
+   iBus auto-detect: trying 115200 baud...
+   iBus auto-detect: LOCKED to 115200 baud
    Waiting for RC signal...
    System ready!
    ```
@@ -560,10 +587,21 @@ v3 includes a watchdog timer that automatically restarts the Arduino if the code
 ### Problem: D-O does nothing / no response
 
 **Solutions:**
-1. Check Serial Monitor output
-2. Verify you see `iBus @ XXXX baud`
-3. If not, the iBus init failed - check wiring
-4. Try changing baudrate (Menu → 1 → b)
+1. Check Serial Monitor output (9600 baud)
+2. Verify you see `iBus auto-detect: LOCKED to <baud> baud`
+3. If you see `no frames — falling back ...`, the receiver isn't being read — see the next section
+
+### Problem: Receiver not detected / no RC input
+
+**First step:** open menu option `t` (RC Channel Test). It shows live channel values and reports `SIGNAL: OK` or `SIGNAL: NONE`.
+
+**If SIGNAL: NONE, check:**
+1. **Wrong receiver port** — the signal must come from the iBus **SERVO** output, not the iBus SENS / telemetry port
+2. **Wrong pin** — iBus signal must go to Mega **D19** (Serial1 RX)
+3. **No common ground** between receiver and Mega
+4. **Receiver not bound** to the transmitter, or transmitter switched off (it must be ON at boot for baud auto-detect to lock)
+5. **Setup Mode wrong** — menu option `1`, set to `1` (Serial) for an iBus/SBUS receiver
+6. **Receiver has no iBus** at all (e.g. a pure PWM receiver / FS-iA6 without "B") — use Setup Mode `0` (PWM) instead
 
 ### Problem: Signal lost but keeps balancing
 
