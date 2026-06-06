@@ -1,12 +1,20 @@
 /********************************************************************************
  * PROJECT: D-O Self-Balancing Droid - Universal Controller
- * VERSION: 3.4.0 (Review fixes on top of v3.3.6)
- * DATE:    April 2026
+ * VERSION: 3.4.1
+ * DATE:    June 2026
+ *
+ * NEW IN 3.4.1:
+ * - SBUS receiver support (runtime switch via menu 'r', needs external inverter)
+ * - Filename-based DFPlayer playback (SD card copy order no longer matters)
+ * - iBus baudrate auto-detection at boot (tries 115200 and 9600 automatically)
+ * - RC Channel Test (menu 't'): live receiver monitor + signal/wiring check
+ * - Optional Madgwick AHRS + class-style PID (compile flags, default off)
+ * - EEPROM magic bumped to 0xD044 (first boot after upgrade resets to defaults)
  *
  * DESCRIPTION:
  * Universal control system for D-O droid with flexible input configuration:
  * - MPU6050 IMU-based self-balancing with PID control
- * - Two simple setup modes: PWM Only or iBus
+ * - Two simple setup modes: PWM Only or Serial RC (iBus or SBUS)
  * - DFPlayer Mini sound system (ALL MODES - always on Mega!)
  * - Multi-servo control for head and mainbar
  * - Battery monitoring with protection
@@ -564,7 +572,7 @@ void setup() {
 // ============================================================================
 
 void showHelp() {
-  Serial.println(F("\n=== CLI HELP (v3.4) ==="));
+  Serial.println(F("\n=== CLI HELP (v3.4.1) ==="));
   Serial.println(F("\nQuick Commands (available anytime):"));
   Serial.println(F("  m - Open configuration menu"));
   Serial.println(F("  h - Show this help (also: ?)"));
@@ -580,6 +588,7 @@ void showHelp() {
   Serial.println(F("  9 - Show Current Status"));
   Serial.println(F("  m - Motor Test & Config"));
   Serial.println(F("  i - IMU Axis Test (live angles)"));
+  Serial.println(F("  t - RC Channel Test (live receiver monitor)"));
   Serial.println(F("  s - Save and Exit"));
   Serial.println(F("  0 - Exit without Saving"));
   Serial.println(F("\nStartup Commands (within 3 seconds):"));
@@ -752,6 +761,53 @@ void initializeForMode() {
 // selecting RC_PROTO_SBUS. Doing this without the inverter results in no
 // frame sync — the CLI shows packets_received = 0.
 // ============================================================================
+// ---------------------------------------------------------------------------
+// iBus baudrate auto-detection (v3.4.1).
+// FlySky iBus is normally 115200 8N1, but some non-standard receivers in the
+// PrintedDroid community ran at 9600. Rather than make the user guess, we try
+// each candidate in turn and listen briefly for VALID, checksum-passed frames
+// (IBusBM only updates channel data on a good frame, so a wrong baud yields
+// all-zero channels — no false positives).
+//
+// Candidate order: the configured value first (fast path / user preference),
+// then the alternate. On success Serial1 + IBus are left running at the
+// detected baud and config.ibus_baudrate is updated in RAM (persist with menu
+// 's' if desired). Returns the detected baud, or 0 if no frames were seen
+// (e.g. transmitter off at boot, or wiring fault) — caller then falls back.
+//
+// Requires the transmitter to be ON during this window. Total worst case
+// ~1 s (2 × 500 ms). wdt_reset() is pumped so the watchdog can't fire mid-scan.
+// ---------------------------------------------------------------------------
+uint32_t autodetectIbusBaud() {
+  uint32_t candidates[2];
+  candidates[0] = config.ibus_baudrate;
+  candidates[1] = (config.ibus_baudrate == 115200) ? 9600 : 115200;
+
+  for (uint8_t i = 0; i < 2; i++) {
+    uint32_t baud = candidates[i];
+    Serial.print(F("iBus auto-detect: trying "));
+    Serial.print(baud);
+    Serial.println(F(" baud..."));
+
+    Serial1.end();
+    Serial1.begin(baud);
+    IBus.begin(Serial1, IBUSBM_NOTIMER);
+
+    unsigned long t_start = millis();
+    while (millis() - t_start < 500) {
+      if (config.watchdog_enabled) wdt_reset();
+      IBus.loop();
+      uint16_t c0 = IBus.readChannel(CH_DRIVE1);
+      uint16_t c1 = IBus.readChannel(CH_DRIVE2);
+      if ((c0 >= RC_MIN_VALID && c0 <= RC_MAX_VALID) ||
+          (c1 >= RC_MIN_VALID && c1 <= RC_MAX_VALID)) {
+        return baud;  // Serial1 + IBus already initialised at this baud
+      }
+    }
+  }
+  return 0;  // nothing detected
+}
+
 void initRCSerial() {
   Serial1.end();  // safe even when Serial1 is not yet open
   sbus_idx = 0;
@@ -763,11 +819,22 @@ void initRCSerial() {
     Serial1.begin(100000, SERIAL_8E2);
     // Do NOT call IBus.begin() — we bypass the library for SBUS
   } else {
-    Serial.print(F("Initializing iBus @ "));
-    Serial.print(config.ibus_baudrate);
-    Serial.println(F(" baud"));
-    Serial1.begin(config.ibus_baudrate);
-    IBus.begin(Serial1, IBUSBM_NOTIMER);
+    // Auto-detect the iBus baudrate (tries configured value first, then the
+    // alternate). Leaves Serial1 + IBus running at whatever it locks onto.
+    uint32_t detected = autodetectIbusBaud();
+    if (detected != 0) {
+      config.ibus_baudrate = detected;  // RAM only — save via menu 's' to persist
+      Serial.print(F("iBus auto-detect: LOCKED to "));
+      Serial.print(detected);
+      Serial.println(F(" baud"));
+    } else {
+      Serial.print(F("iBus auto-detect: no frames — falling back to "));
+      Serial.print(config.ibus_baudrate);
+      Serial.println(F(" baud (TX off? wiring? use menu 't' to verify)"));
+      Serial1.end();
+      Serial1.begin(config.ibus_baudrate);
+      IBus.begin(Serial1, IBUSBM_NOTIMER);
+    }
   }
 }
 
@@ -1802,6 +1869,7 @@ void configurationMenu() {
 #endif
     Serial.println(F("m. Motor Test & Config"));
     Serial.println(F("i. IMU Axis Test (live angles)"));
+    Serial.println(F("t. RC Channel Test (live receiver monitor)"));
     Serial.println(F("s. Save and Exit"));
     Serial.println(F("0. Exit without Saving"));
     Serial.print(F("Select: "));
@@ -1830,6 +1898,8 @@ void configurationMenu() {
       case 'M': motorTestMenu(); break;
       case 'i':
       case 'I': imuTestMenu(); break;
+      case 't':
+      case 'T': rcTestMenu(); break;
       case 's':
       case 'S':
         saveConfiguration();
@@ -1876,6 +1946,8 @@ void configureSetupMode() {
 
 void configureIbusBaudrate() {
   Serial.println(F("\n--- iBus Baudrate ---"));
+  Serial.println(F("(Auto-detect runs at boot and tries this value FIRST,"));
+  Serial.println(F(" then the other. This setting is just the preferred guess.)"));
   Serial.print(F("Current: "));
   Serial.println(config.ibus_baudrate);
   Serial.println(F("1 = 9600 (non-standard)"));
@@ -2276,6 +2348,86 @@ void imuTestMenu() {
         Serial.println(F("Invalid option"));
     }
   }
+}
+
+// ============================================================================
+// RC CHANNEL TEST — live receiver monitor (diagnose "no input")
+// ============================================================================
+// Streams all RC channels to the Serial Monitor so you can confirm the
+// receiver is actually sending data and see which stick/switch maps to which
+// channel. Works in both setup modes:
+//   Mode 0 (PWM):    drive pins 3/4 + sound pins 14-17 via pulseIn
+//   Mode 1 (Serial): all 10 iBus/SBUS channels via the active parser
+// The watchdog is already disabled while in the menu (loop() disables it
+// before configurationMenu()), so this long-running live loop is safe.
+void rcTestMenu() {
+  Serial.println(F("\n=== RC CHANNEL TEST ==="));
+  Serial.println(F("Live receiver monitor. Move sticks/switches to identify channels."));
+
+  if (config.setup_mode == 1) {
+    Serial.print(F("Protocol: "));
+    Serial.println(config.rc_protocol == RC_PROTO_SBUS ? F("SBUS") : F("iBus"));
+    if (config.rc_protocol == RC_PROTO_IBUS) {
+      Serial.print(F("Baudrate: "));
+      Serial.println(config.ibus_baudrate);
+    }
+    Serial.println(F("Channel map: 0=Drive1 1=Drive2 2=Mainbar 3=Head1 4=Head2"));
+    Serial.println(F("             5=Head3 6=Mute 7=Mode 8=Mood 9=Squeak"));
+  } else {
+    Serial.println(F("Mode 0 (PWM): drive on D3/D4, sound on D14-D17"));
+  }
+  Serial.println(F("\nPress any key to stop.\n"));
+
+  delay(300);
+  while (Serial.available()) Serial.read();
+
+  unsigned long last_print = 0;
+  while (!Serial.available()) {
+    // Pump the protocol parser every iteration so frames keep decoding
+    if (config.setup_mode == 1) {
+      rcProtocolLoop();
+    }
+
+    if (millis() - last_print > 200) {
+      last_print = millis();
+
+      if (config.setup_mode == 1) {
+        bool any_valid = false;
+        for (uint8_t ch = 0; ch < 10; ch++) {
+          uint16_t v = rcReadChannel(ch);
+          if (v >= RC_MIN_VALID && v <= RC_MAX_VALID) any_valid = true;
+          Serial.print(F("CH"));
+          Serial.print(ch);
+          Serial.print(F(":"));
+          Serial.print(v);
+          Serial.print(F("  "));
+        }
+        Serial.println();
+
+        if (!any_valid) {
+          Serial.println(F(">> SIGNAL: NONE! No valid frames. Check:"));
+          Serial.println(F("   - receiver iBus SERVO port (NOT the SENS/telemetry port)"));
+          Serial.println(F("   - signal wire to Mega D19 (Serial1-RX), shared GND"));
+          Serial.println(F("   - transmitter bound & on, baudrate matches receiver"));
+        } else if (config.rc_protocol == RC_PROTO_SBUS && sbus_failsafe_active) {
+          Serial.println(F(">> SBUS FAILSAFE active!"));
+        } else {
+          Serial.println(F(">> SIGNAL: OK"));
+        }
+      } else {
+        // Mode 0 (PWM) — read each input pin directly
+        Serial.print(F("Drive1(D3):"));  Serial.print(pulseIn(PWM_DRIVE1_PIN, HIGH, 25000));
+        Serial.print(F("  Drive2(D4):")); Serial.println(pulseIn(PWM_DRIVE2_PIN, HIGH, 25000));
+        Serial.print(F("Mute(D14):"));    Serial.print(pulseIn(PWM_SOUND_CH1_PIN, HIGH, 25000));
+        Serial.print(F("  Mode(D15):"));  Serial.print(pulseIn(PWM_SOUND_CH2_PIN, HIGH, 25000));
+        Serial.print(F("  Mood(D16):"));  Serial.print(pulseIn(PWM_SOUND_CH3_PIN, HIGH, 25000));
+        Serial.print(F("  Squeak(D17):")); Serial.println(pulseIn(PWM_SOUND_CH4_PIN, HIGH, 25000));
+        Serial.println(F("(0 = no pulse on that pin)"));
+      }
+    }
+  }
+  while (Serial.available()) Serial.read();
+  Serial.println(F("\nRC test stopped."));
 }
 
 // Helper functions
