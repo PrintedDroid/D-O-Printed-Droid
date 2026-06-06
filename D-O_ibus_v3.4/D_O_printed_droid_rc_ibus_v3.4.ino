@@ -1,15 +1,21 @@
 /********************************************************************************
  * PROJECT: D-O Self-Balancing Droid - Universal Controller
- * VERSION: 3.4.1
+ * VERSION: 3.4.2
  * DATE:    June 2026
  *
- * NEW IN 3.4.1:
- * - SBUS receiver support (runtime switch via menu 'r', needs external inverter)
- * - Filename-based DFPlayer playback (SD card copy order no longer matters)
+ * NEW IN 3.4.2:
  * - iBus baudrate auto-detection at boot (tries 115200 and 9600 automatically)
  * - RC Channel Test (menu 't'): live receiver monitor + signal/wiring check
+ * - Configurable channel mapping (menu 'p'): assign any TX channel to any
+ *   function. Stored in a separate EEPROM block (magic 0xC101) — does NOT
+ *   reset PID/calibration. No config-struct change, so upgrading 3.4.1 -> 3.4.2
+ *   keeps all your settings (EEPROM magic stays 0xD044).
+ *
+ * IN 3.4.1:
+ * - SBUS receiver support (runtime switch via menu 'r', needs external inverter)
+ * - Filename-based DFPlayer playback (SD card copy order no longer matters)
  * - Optional Madgwick AHRS + class-style PID (compile flags, default off)
- * - EEPROM magic bumped to 0xD044 (first boot after upgrade resets to defaults)
+ * - EEPROM magic bumped to 0xD044 (first boot after upgrade from <=3.4.0 resets)
  *
  * DESCRIPTION:
  * Universal control system for D-O droid with flexible input configuration:
@@ -325,6 +331,34 @@ const uint8_t CH_SOUND_MODE = 7;
 const uint8_t CH_SOUND_MOOD = 8;
 const uint8_t CH_SOUND_SQUEAK = 9;
 
+// ============================================================================
+// CHANNEL MAP (v3.4.2) — which transmitter channel drives each function.
+// Stored in a SEPARATE EEPROM block with its own magic, well past the main
+// Configuration block, so remapping channels NEVER resets PID / calibration /
+// other settings. Values are 0-based channel indices (0 = TX CH1 ... 9 = CH10).
+// Defaults match the classic D-O map. Edit at runtime via menu option 'p'.
+// Useful because on some transmitters (e.g. FlySky FS-i6X) CH1-CH4 are fixed
+// gimbals and only CH5-CH10 are freely assignable — so users may need to move
+// a function onto a different channel.
+// ============================================================================
+const int EEPROM_CHMAP_ADDR = 512;   // safely past sizeof(Configuration) at addr 0
+const uint16_t CHMAP_MAGIC = 0xC101; // channel-map block v1
+
+struct ChannelMap {
+  uint16_t magic       = CHMAP_MAGIC;
+  uint8_t drive1       = CH_DRIVE1;
+  uint8_t drive2       = CH_DRIVE2;
+  uint8_t mainbar      = CH_MAINBAR;
+  uint8_t head1        = CH_HEAD1;
+  uint8_t head2        = CH_HEAD2;
+  uint8_t head3        = CH_HEAD3;
+  uint8_t sound_mute   = CH_SOUND_MUTE;
+  uint8_t sound_mode   = CH_SOUND_MODE;
+  uint8_t sound_mood   = CH_SOUND_MOOD;
+  uint8_t sound_squeak = CH_SOUND_SQUEAK;
+};
+ChannelMap chmap;
+
 // RC Constants
 const uint16_t RC_CENTER = 1500;
 const uint16_t RC_MIN = 1000;
@@ -486,10 +520,13 @@ unsigned long last_freq_print = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Universal Controller v3.4.1 ==="));
+  Serial.println(F("\n=== D-O Universal Controller v3.4.2 ==="));
 
   // Load configuration
   loadConfiguration();
+
+  // Load channel map (separate EEPROM block — independent of Configuration)
+  loadChannelMap();
 
   // Initialize current PID values
   current_kp = config.kp;
@@ -572,7 +609,7 @@ void setup() {
 // ============================================================================
 
 void showHelp() {
-  Serial.println(F("\n=== CLI HELP (v3.4.1) ==="));
+  Serial.println(F("\n=== CLI HELP (v3.4.2) ==="));
   Serial.println(F("\nQuick Commands (available anytime):"));
   Serial.println(F("  m - Open configuration menu"));
   Serial.println(F("  h - Show this help (also: ?)"));
@@ -589,6 +626,7 @@ void showHelp() {
   Serial.println(F("  m - Motor Test & Config"));
   Serial.println(F("  i - IMU Axis Test (live angles)"));
   Serial.println(F("  t - RC Channel Test (live receiver monitor)"));
+  Serial.println(F("  p - Channel Mapping (assign TX channel to each function)"));
   Serial.println(F("  s - Save and Exit"));
   Serial.println(F("  0 - Exit without Saving"));
   Serial.println(F("\nStartup Commands (within 3 seconds):"));
@@ -762,7 +800,7 @@ void initializeForMode() {
 // frame sync — the CLI shows packets_received = 0.
 // ============================================================================
 // ---------------------------------------------------------------------------
-// iBus baudrate auto-detection (v3.4.1).
+// iBus baudrate auto-detection (v3.4.2).
 // FlySky iBus is normally 115200 8N1, but some non-standard receivers in the
 // PrintedDroid community ran at 9600. Rather than make the user guess, we try
 // each candidate in turn and listen briefly for VALID, checksum-passed frames
@@ -797,8 +835,8 @@ uint32_t autodetectIbusBaud() {
     while (millis() - t_start < 500) {
       if (config.watchdog_enabled) wdt_reset();
       IBus.loop();
-      uint16_t c0 = IBus.readChannel(CH_DRIVE1);
-      uint16_t c1 = IBus.readChannel(CH_DRIVE2);
+      uint16_t c0 = IBus.readChannel(chmap.drive1);
+      uint16_t c1 = IBus.readChannel(chmap.drive2);
       if ((c0 >= RC_MIN_VALID && c0 <= RC_MAX_VALID) ||
           (c1 >= RC_MIN_VALID && c1 <= RC_MAX_VALID)) {
         return baud;  // Serial1 + IBus already initialised at this baud
@@ -957,8 +995,8 @@ void readRCInputs() {
 
     case 1:  // iBus
       rcProtocolLoop();
-      temp1 = rcReadChannel(CH_DRIVE1);
-      temp2 = rcReadChannel(CH_DRIVE2);
+      temp1 = rcReadChannel(chmap.drive1);
+      temp2 = rcReadChannel(chmap.drive2);
 
       if (temp1 >= RC_MIN_VALID && temp1 <= RC_MAX_VALID &&
           temp2 >= RC_MIN_VALID && temp2 <= RC_MAX_VALID) {
@@ -1013,8 +1051,8 @@ void waitForRCSignal() {
         break;
       case 1:
         rcProtocolLoop();
-        rc_drive_1 = rcReadChannel(CH_DRIVE1);
-        rc_drive_2 = rcReadChannel(CH_DRIVE2);
+        rc_drive_1 = rcReadChannel(chmap.drive1);
+        rc_drive_2 = rcReadChannel(chmap.drive2);
         break;
     }
 
@@ -1548,10 +1586,10 @@ void updateServos() {
 
   // Read servo positions based on mode
   if (config.setup_mode == 1) {  // iBus mode
-    mainbar_pos = rcReadChannel(CH_MAINBAR);
-    head1_pos = rcReadChannel(CH_HEAD1);
-    head2_pos = rcReadChannel(CH_HEAD2);
-    head3_pos = rcReadChannel(CH_HEAD3);
+    mainbar_pos = rcReadChannel(chmap.mainbar);
+    head1_pos = rcReadChannel(chmap.head1);
+    head2_pos = rcReadChannel(chmap.head2);
+    head3_pos = rcReadChannel(chmap.head3);
   }
   // Mode 0 (PWM): Would need additional PWM inputs for servos (not implemented)
 
@@ -1776,10 +1814,10 @@ void handleSoundSystem() {
     if (sw_squeak == 0) sw_squeak = RC_MIN;
   } else {
     // Mode 1 (iBus) - read from iBus
-    sw_mute = rcReadChannel(CH_SOUND_MUTE);
-    sw_mode = rcReadChannel(CH_SOUND_MODE);
-    sw_mood = rcReadChannel(CH_SOUND_MOOD);
-    sw_squeak = rcReadChannel(CH_SOUND_SQUEAK);
+    sw_mute = rcReadChannel(chmap.sound_mute);
+    sw_mode = rcReadChannel(chmap.sound_mode);
+    sw_mood = rcReadChannel(chmap.sound_mood);
+    sw_squeak = rcReadChannel(chmap.sound_squeak);
   }
 
   // Process mute switch
@@ -1870,6 +1908,7 @@ void configurationMenu() {
     Serial.println(F("m. Motor Test & Config"));
     Serial.println(F("i. IMU Axis Test (live angles)"));
     Serial.println(F("t. RC Channel Test (live receiver monitor)"));
+    Serial.println(F("p. Channel Mapping (assign TX channel to each function)"));
     Serial.println(F("s. Save and Exit"));
     Serial.println(F("0. Exit without Saving"));
     Serial.print(F("Select: "));
@@ -1900,14 +1939,18 @@ void configurationMenu() {
       case 'I': imuTestMenu(); break;
       case 't':
       case 'T': rcTestMenu(); break;
+      case 'p':
+      case 'P': configureChannelMap(); break;
       case 's':
       case 'S':
         saveConfiguration();
+        saveChannelMap();
         Serial.println(F("Saved! RESTART required if mode changed."));
         return;
       case '0':
         Serial.println(F("Exiting without saving..."));
         loadConfiguration();
+        loadChannelMap();
         return;
     }
   }
@@ -2470,6 +2513,51 @@ bool getBoolInput(const __FlashStringHelper* prompt, bool current) {
   return value;
 }
 
+// Channel picker: prompts with the 1-based transmitter channel (CH1..CH10),
+// stores the 0-based index used by readChannel().
+uint8_t getChannelInput(const __FlashStringHelper* prompt, uint8_t current) {
+  Serial.print(prompt);
+  Serial.print(F(" [CH"));
+  Serial.print(current + 1);
+  Serial.print(F("] (1-10): "));
+
+  while (!Serial.available()) delay(10);
+  String input = Serial.readStringUntil('\n');
+  input.trim();
+
+  if (input.length() == 0) { Serial.println(current + 1); return current; }
+
+  int value = input.toInt();
+  value = constrain(value, 1, 10);
+  Serial.println(value);
+  return (uint8_t)(value - 1);
+}
+
+// ============================================================================
+// CHANNEL MAPPING MENU (option 'p')
+// ============================================================================
+void configureChannelMap() {
+  Serial.println(F("\n--- Channel Mapping ---"));
+  Serial.println(F("Assign a transmitter channel (1-10) to each function."));
+  Serial.println(F("TIP: run menu option 't' (RC Channel Test) first to see which"));
+  Serial.println(F("channel each stick/knob/switch moves, then map it here."));
+  Serial.println(F("Press Enter to keep the current value.\n"));
+
+  chmap.drive1       = getChannelInput(F("Drive 1 (steer)"),     chmap.drive1);
+  chmap.drive2       = getChannelInput(F("Drive 2 (throttle)"),  chmap.drive2);
+  chmap.mainbar      = getChannelInput(F("Mainbar servo"),       chmap.mainbar);
+  chmap.head1        = getChannelInput(F("Head 1 (pitch)"),      chmap.head1);
+  chmap.head2        = getChannelInput(F("Head 2 (yaw)"),        chmap.head2);
+  chmap.head3        = getChannelInput(F("Head 3 (roll)"),       chmap.head3);
+  chmap.sound_mute   = getChannelInput(F("Sound Mute"),          chmap.sound_mute);
+  chmap.sound_mode   = getChannelInput(F("Sound Mode"),          chmap.sound_mode);
+  chmap.sound_mood   = getChannelInput(F("Sound Mood"),          chmap.sound_mood);
+  chmap.sound_squeak = getChannelInput(F("Sound Squeak"),        chmap.sound_squeak);
+
+  Serial.println(F("\nChannel map updated (in RAM)."));
+  Serial.println(F("Use main-menu 's' to save, or '0' to discard."));
+}
+
 // ============================================================================
 // EEPROM PERSISTENCE
 // ============================================================================
@@ -2492,7 +2580,7 @@ void loadConfiguration() {
 #if USE_MADGWICK_AHRS
     mw_beta = config.madgwick_beta;  // runtime mirror
 #endif
-    Serial.println(F("Configuration loaded (v3.4.1 layout)"));
+    Serial.println(F("Configuration loaded (0xD044 layout)"));
   } else {
     // v3.4.0 (0xD043) and older are NOT field-layout compatible with v3.4.1:
     // `max_acceleration` was dropped from the struct and `rc_protocol`
@@ -2501,7 +2589,7 @@ void loadConfiguration() {
     // One-shot config-loss on upgrade — documented in CHANGELOG v3.4.1.
     Serial.print(F("EEPROM magic 0x"));
     Serial.print(temp.magic, HEX);
-    Serial.println(F(" — not v3.4.1, resetting to defaults"));
+    Serial.println(F(" — not 0xD044, resetting to defaults"));
     saveConfiguration();
   }
 }
@@ -2511,6 +2599,35 @@ void saveConfiguration() {
   Serial.println(F("Configuration saved"));
 }
 
+// ----------------------------------------------------------------------------
+// Channel map persistence — SEPARATE EEPROM block (own magic, addr 512) so it
+// never disturbs the main Configuration at addr 0. Existing PID/calibration/
+// settings survive a channel remap and vice versa.
+// ----------------------------------------------------------------------------
+void loadChannelMap() {
+  ChannelMap temp;
+  EEPROM.get(EEPROM_CHMAP_ADDR, temp);
+
+  bool ok = (temp.magic == CHMAP_MAGIC) &&
+            temp.drive1 <= 9 && temp.drive2 <= 9 && temp.mainbar <= 9 &&
+            temp.head1 <= 9 && temp.head2 <= 9 && temp.head3 <= 9 &&
+            temp.sound_mute <= 9 && temp.sound_mode <= 9 &&
+            temp.sound_mood <= 9 && temp.sound_squeak <= 9;
+
+  if (ok) {
+    chmap = temp;
+    Serial.println(F("Channel map loaded"));
+  } else {
+    chmap = ChannelMap();   // fresh defaults
+    saveChannelMap();
+    Serial.println(F("Channel map: defaults (block init)"));
+  }
+}
+
+void saveChannelMap() {
+  EEPROM.put(EEPROM_CHMAP_ADDR, chmap);
+}
+
 // ============================================================================
-// End of D-O Universal Controller v3.4.1
+// End of D-O Universal Controller v3.4.2
 // ============================================================================

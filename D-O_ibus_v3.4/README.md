@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - Universal Controller v3.4
 
-![Version](https://img.shields.io/badge/version-3.4.1-blue.svg)
+![Version](https://img.shields.io/badge/version-3.4.2-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -59,21 +59,27 @@ Designed for builders who want the most advanced and reliable D-O control system
 
 ## 📝 Changelog
 
-### Version 3.4.1 (June 2026)
+### Version 3.4.2 (June 2026)
 
-**SBUS support, smarter sound addressing, and iBus diagnostics**
+**Easy receiver setup: baud auto-detect, channel test, channel mapping**
 
-*Receiver & diagnostics:*
 - **iBus baudrate auto-detection**: at boot the controller automatically tries 115200 and 9600 and locks onto whichever your receiver uses — no manual baud setting needed. The transmitter must be switched on during startup; if no signal is seen it falls back to the configured value.
 - **RC Channel Test** (menu option `t`): live receiver monitor showing all channels. It reports `SIGNAL: OK` or `SIGNAL: NONE` with a wiring checklist — the fastest way to confirm the receiver works and to see which stick/switch maps to which channel. Works in both iBus and PWM mode.
+- **Configurable channel mapping** (menu option `p`): assign any transmitter channel (1–10) to any function (drive, mainbar, head, sounds). Useful on transmitters such as the FlySky FS-i6X where CH1–CH4 are fixed gimbals and only CH5–CH10 are freely assignable. Stored in a **separate EEPROM block**, so remapping never resets your PID / calibration / other settings.
+- **FS-i6X documentation fix**: corrected the old (wrong) instruction to "assign CH3 to VrA". On the FS-i6X CH3 is the throttle stick and drives the mainbar without any assignment — see *iBus Channel Mapping* below.
+- **Upgrade note:** 3.4.1 → 3.4.2 keeps all your settings — the Configuration layout is unchanged (EEPROM magic stays `0xD044`); the channel map lives in its own block.
+
+---
+
+### Version 3.4.1 (April 2026)
+
+**SBUS support + smarter sound addressing**
+
 - **SBUS receiver support** (Futaba / FrSky): switch between iBus and SBUS at runtime via menu option `r`. SBUS requires an external hardware inverter between the receiver's SBUS output and Mega pin D19 (the Mega cannot invert the signal itself) — see the handbook for the wiring.
-
-*Sound & storage:*
 - **Filename-based sound playback**: the DFPlayer now finds tracks by filename (`/mp3/0001.mp3` …), so the order in which you copy files onto the SD card no longer matters.
-
-*Other:*
 - **Status screen** (menu `9`) now shows the active RC protocol and, on SBUS, a FAILSAFE flag.
-- **Upgrade note:** the EEPROM layout changed (magic `0xD044`). The first boot after upgrading resets all settings to defaults — re-run IMU calibration with `c` and re-apply your settings via `m`.
+- Optional **Madgwick AHRS** + class-style PID as compile flags (default off).
+- **Upgrade note:** EEPROM layout changed (magic `0xD044`). The first boot after upgrading from v3.4.0 or older resets all settings to defaults — re-run IMU calibration with `c` and re-apply your settings via `m`.
 
 ---
 
@@ -336,6 +342,26 @@ Voltage at A15 = Battery Voltage × (3.3 / 13.3)
 | **CH9** | Sound Mood | Negative / Neutral / Positive (3-pos) |
 | **CH10** | Sound Squeak | Squeak sounds |
 
+This is the **default** mapping. Since v3.4.2 you can reassign any function to any channel via menu option `p` (Channel Mapping) — see below.
+
+### FlySky FS-i6X note
+
+On the FS-i6X, channels **CH1–CH4 are fixed gimbals** and cannot be reassigned: CH1 = aileron, CH2 = elevator, **CH3 = throttle**, CH4 = rudder. Only **CH5–CH10** can be mapped to the knobs (VrA/VrB) or switches (SwA–SwD) in the transmitter's *Aux Channels* menu.
+
+With the default map this works out of the box (Mode 2):
+
+- Right stick → CH1/CH2 → drive
+- Left stick vertical (CH3, throttle — holds position) → mainbar
+- Left stick horizontal (CH4, rudder) → head pitch
+- CH5 → VrA → head yaw, CH6 → VrB → head roll
+- CH7–CH10 → switches → sounds
+
+So you only assign CH5–CH10 on the transmitter; CH3 needs no assignment. (Older docs said "assign CH3 to VrA" — that was wrong, CH3 is a fixed stick.) The full map needs the i6X in 10-channel mode and a 10-channel receiver (e.g. FS-RX2A Pro).
+
+### Remapping channels (menu `p`)
+
+If you'd rather put a function on a different channel — e.g. the mainbar on a knob instead of the throttle stick — open the menu (`m`) and choose `p` (Channel Mapping). Tip: run `t` (RC Channel Test) first to see which channel each control moves, then assign it. The channel map is stored in its own EEPROM block, so changing it never resets your other settings.
+
 ---
 
 ## 🎮 RC Mixing Modes
@@ -467,6 +493,7 @@ r. RC Protocol (iBus / SBUS)
 m. Motor Test & Config
 i. IMU Axis Test (live angles)
 t. RC Channel Test (live receiver monitor)
+p. Channel Mapping (assign TX channel to each function)
 s. Save and Exit
 0. Exit without Saving
 ```
@@ -486,6 +513,7 @@ s. Save and Exit
 | **9** | Display current system status (incl. active RC protocol) |
 | **r** | Switch RC protocol: iBus / SBUS (SBUS needs external inverter) |
 | **t** | RC Channel Test — live receiver monitor (signal + channel check) |
+| **p** | Channel Mapping — assign any TX channel (1-10) to each function |
 
 ---
 
@@ -544,7 +572,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Universal Controller v3.4.1 ===
+   === D-O Universal Controller v3.4.2 ===
    Configuration loaded
    Setup Mode: iBus (Recommended)
    IMU found at 0x68
