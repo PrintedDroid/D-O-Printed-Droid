@@ -4,7 +4,7 @@ Control & power electronics for the self-balancing **D-O droid** from *Star Wars
 
 | Line | Controller | Board revisions | Current firmware |
 |------|-----------|-----------------|------------------|
-| **AIO Mega** | Arduino Mega 2560 + Cytron MDD10A | V1.6 Standard PCB, V1.7 Mini iBus | [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) — v3.4.1 |
+| **AIO Mega** | Arduino Mega 2560 + Cytron MDD10A | V1.6 Standard PCB, V1.7 Mini iBus | [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) — v3.4.3 |
 | **AIO32 v2** | ESP32-S3 (TENSTAR module) + Cytron MDD10A | AIO32 v2 | [`D-O_AIO32_v2.1/`](D-O_AIO32_v2.1/) — v2.1.1 |
 
 Both controllers share the **FlySky iBus / Futaba SBUS channel map, the DFPlayer SD-card layout, and the 4S LiPo supply** — you can swap boards in a finished droid and reuse your transmitter, sound files and mechanics without reconfiguration.
