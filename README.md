@@ -15,7 +15,7 @@ Both controllers share the **FlySky iBus / Futaba SBUS channel map, the DFPlayer
 
 | Your situation | Use |
 |----------------|-----|
-| New build, Mega + V1.6 / V1.7 PCB, FlySky iBus receiver | [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) **Mode 1 / iBus** — current v3.4.1 |
+| New build, Mega + V1.6 / V1.7 PCB, FlySky iBus receiver | [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) **Mode 1 / iBus** — current v3.4.3 |
 | New build, Mega + V1.6 / V1.7 PCB, FrSky / Futaba SBUS receiver | [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) **Mode 1 / SBUS** — needs external inverter |
 | New build, Mega + V1.6 PCB, classic PWM receiver (no iBus) | [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) **Mode 0** |
 | New build on the **AIO32 v2** board (ESP32-S3) | [`D-O_AIO32_v2.1/`](D-O_AIO32_v2.1/) — v2.1.1, runtime iBus/SBUS switch, no inverter |
@@ -31,7 +31,7 @@ Both controllers share the **FlySky iBus / Futaba SBUS channel map, the DFPlayer
 
 Arduino-based control and power system. Two active board generations: **V1.6** (Standard Control PCB, PWM + optional Nano for sound) and **V1.7** (Mini iBus Board, iBus-only, sound integrated on the Mega).
 
-**Current sketch:** [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) — v3.4.1 (April 2026 point release: SBUS support via external inverter, filename-based DFPlayer addressing, optional Madgwick AHRS + class-style PID as AIO32 backports, `max_acceleration` field removed, EEPROM magic bumped to `0xD044`).
+**Current sketch:** [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) — v3.4.3 (June 2026: watchdog reset-loop fix; on top of v3.4.2's iBus baud auto-detection, RC Channel Test, configurable channel mapping and FS-i6X documentation fix, and v3.4.1's SBUS support, filename-based DFPlayer addressing, optional Madgwick AHRS + class-style PID, EEPROM magic `0xD044`). Upgrading within 3.4.x keeps all settings (config layout unchanged).
 
 ### Features
 
@@ -40,7 +40,8 @@ Arduino-based control and power system. Two active board generations: **V1.6** (
 - 4-servo control (mainbar + 3 × head)
 - DFPlayer Mini sound system with personality (greetings, moods, idle animations, tilt warning, low-battery)
 - Cytron MDD10A dual-channel motor driver (10 A per channel)
-- Interactive serial menu with EEPROM-backed configuration (PID tuning, feature toggles, calibration, RC protocol switch, Madgwick beta tuning)
+- Interactive serial menu with EEPROM-backed configuration (PID tuning, feature toggles, calibration, RC protocol switch, Madgwick beta tuning, live RC channel monitor)
+- iBus baudrate **auto-detection** at boot (tries 115200 and 9600, no manual guessing) plus a live **RC Channel Test** (menu `t`) to verify the receiver and identify channel mapping
 - Battery monitoring (2 × 2S LiPo in series = 4S, 14.8 V nominal) with low-voltage protection
 - Motor ramping, adaptive PID (3 bands), dynamic target angle, arcade / tank mixing
 
@@ -61,7 +62,7 @@ On V1.6 / V1.7 the connectors are labelled by **FlySky channel number**, **not b
 
 | Board label | Mega pin | FlySky CH | Function |
 |:-----------:|:--------:|:---------:|----------|
-| **3** | D0 | CH3 | Mainbar servo (stabiliser bar) — *CH3 must be manually assigned on the transmitter* |
+| **3** | D0 | CH3 | Mainbar servo (stabiliser bar) — on the FS-i6X this is the left stick vertical (throttle, holds position); no transmitter assignment needed |
 | **4** | D1 | CH4 | Head pitch |
 | **5** | D5 | CH5 | Head yaw |
 | **6** | D6 | CH6 | Head roll |
@@ -100,7 +101,7 @@ All sketches in this repository. Individual sketch folders contain their own REA
 
 | Sketch | Platform | Role | Status | Target user |
 |--------|----------|------|--------|-------------|
-| [**`D-O_ibus_v3.4`**](D-O_ibus_v3.4/) (v3.4.1) | Arduino Mega 2560 | Universal Mega controller | **Current, recommended** | Any new build on V1.6 / V1.7 |
+| [**`D-O_ibus_v3.4`**](D-O_ibus_v3.4/) (v3.4.3) | Arduino Mega 2560 | Universal Mega controller | **Current, recommended** | Any new build on V1.6 / V1.7 |
 | [**`D-O_AIO32_v2.1`**](D-O_AIO32_v2.1/) (v2.1.1) | ESP32-S3 (TENSTAR) | AIO32 v2 board firmware | **Current, recommended** | Any build on the AIO32 v2 controller |
 | [`D-O_ibus_v2.1`](D-O_ibus_v2.1/) | Arduino Mega 2560 | Legacy controller with external Nano sound | Maintenance | Existing V1.6 installs with a wired-up Nano |
 | [`D-O_ibus_v1.1`](D-O_ibus_v1.1/) | Arduino Mega 2560 | Original iBus version (2020-11) | Archive | Historical reference |
@@ -112,7 +113,9 @@ All sketches in this repository. Individual sketch folders contain their own REA
 - **Base:** Rewrite of v2.1 (December 2025), consolidated and bug-fixed in April 2026. v3.4.1 (April 2026) adds AIO32 cross-port features behind compile flags + SBUS menu option.
 - **Setup modes:** `0 = PWM Only`, `1 = Serial RC (iBus or SBUS — chosen via menu option r)`. No Hybrid mode.
 - **Sound:** DFPlayer always driven by the Mega (D7 / D8). No external Nano required. v3.4.1 uses filename-based addressing — SD-card copy order no longer matters.
-- **Features (v3.4.1):** RC shaping with deadband + expo curve (input clamped against overshoot), motor ramping, arcade / tank mixing, idle animations with signal gating, battery monitoring, watchdog, IMU clone support, SBUS support (via external inverter), optional Madgwick AHRS, optional class-style PID with anti-windup, runtime Madgwick beta tuning, EEPROM magic `0xD044`.
+- **Features (v3.4.3):** RC shaping with deadband + expo curve (input clamped against overshoot), motor ramping, arcade / tank mixing, idle animations with signal gating, battery monitoring, watchdog (hardened against reset loops), IMU clone support, SBUS support (via external inverter), optional Madgwick AHRS, optional class-style PID with anti-windup, runtime Madgwick beta tuning, configurable channel mapping, EEPROM magic `0xD044`.
+- **iBus diagnostics (2026-06):** automatic iBus baudrate detection at boot (tries the configured rate first, then the alternate of 115200 / 9600; clean fallback if the transmitter is off) and a live **RC Channel Test** in the menu (option `t`) that streams all channels and flags a missing receiver signal with a wiring checklist.
+- **Configurable channel mapping (menu `p`):** assign any transmitter channel to any function (drive, mainbar, head, sounds). Useful on transmitters like the FlySky FS-i6X where CH1–CH4 are fixed gimbals and only CH5–CH10 are freely assignable. Stored in a separate EEPROM block, so remapping never resets your other settings.
 - **Pinout:** identical to v2.1 / v1.1 (PCB compatibility preserved).
 - **Details:** [`D-O_ibus_v3.4/README.md`](D-O_ibus_v3.4/README.md)
 
