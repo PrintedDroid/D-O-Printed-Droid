@@ -1,6 +1,6 @@
 # D-O Self-Balancing Droid - Universal Controller v3.4
 
-![Version](https://img.shields.io/badge/version-3.4.2-blue.svg)
+![Version](https://img.shields.io/badge/version-3.4.3-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20Mega%202560-green.svg)
 ![License](https://img.shields.io/badge/license-Non--Commercial-red.svg)
 
@@ -58,6 +58,15 @@ Designed for builders who want the most advanced and reliable D-O control system
 ---
 
 ## 📝 Changelog
+
+### Version 3.4.3 (June 2026)
+
+**Critical fix: watchdog reset loop**
+
+- Fixed a reset loop where the board would boot, show the menu prompt, then reset every ~2 seconds (and the DFPlayer never initialised). Cause: the watchdog timer was enabled before the blocking startup steps (DFPlayer init, RC-signal wait), and a prior watchdog reset wasn't cleared at boot (the stock Mega bootloader leaves it running). The watchdog is now cleared at the start of setup and only enabled at the end, after init completes.
+- If your board was stuck in a boot/reset loop on 3.4.2, this release fixes it. No settings change — just re-flash.
+
+---
 
 ### Version 3.4.2 (June 2026)
 
@@ -572,7 +581,7 @@ Audio files must be placed on the Micro SD card in the `/mp3/` folder:
 2. Turn on RC transmitter
 3. Arduino starts - you'll see:
    ```
-   === D-O Universal Controller v3.4.2 ===
+   === D-O Universal Controller v3.4.3 ===
    Configuration loaded
    Setup Mode: iBus (Recommended)
    IMU found at 0x68
