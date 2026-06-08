@@ -1,15 +1,21 @@
 /********************************************************************************
  * PROJECT: D-O Self-Balancing Droid - Universal Controller
- * VERSION: 3.4.2
+ * VERSION: 3.4.3
  * DATE:    June 2026
  *
- * NEW IN 3.4.2:
+ * NEW IN 3.4.3:
+ * - Fixed a watchdog reset loop: the WDT is now cleared at the start of setup()
+ *   and only enabled at the END (after DFPlayer init + RC wait), so blocking
+ *   startup steps can't trip it and a prior WDT reset can't trap the board in a
+ *   ~2 s reset loop. Also fixes the DFPlayer never initialising. See BUGFIXES #7.
+ *
+ * IN 3.4.2:
  * - iBus baudrate auto-detection at boot (tries 115200 and 9600 automatically)
  * - RC Channel Test (menu 't'): live receiver monitor + signal/wiring check
  * - Configurable channel mapping (menu 'p'): assign any TX channel to any
  *   function. Stored in a separate EEPROM block (magic 0xC101) — does NOT
- *   reset PID/calibration. No config-struct change, so upgrading 3.4.1 -> 3.4.2
- *   keeps all your settings (EEPROM magic stays 0xD044).
+ *   reset PID/calibration. No config-struct change, so upgrading keeps all
+ *   your settings (EEPROM magic stays 0xD044).
  *
  * IN 3.4.1:
  * - SBUS receiver support (runtime switch via menu 'r', needs external inverter)
@@ -519,8 +525,17 @@ unsigned long last_freq_print = 0;
 // ============================================================================
 
 void setup() {
+  // CRITICAL: disable the watchdog at the very start. After a WDT reset the
+  // ATmega2560 keeps the watchdog running, and the stock Mega bootloader does
+  // NOT clear it — so a single watchdog event would otherwise become a
+  // permanent ~2 s reset loop (resetting even the startup menu and any blocking
+  // init). Clear the reset flags and disable; we re-enable only at the END of
+  // setup(), after all blocking init (DFPlayer, RC wait) is done.
+  MCUSR = 0;
+  wdt_disable();
+
   Serial.begin(9600);
-  Serial.println(F("\n=== D-O Universal Controller v3.4.2 ==="));
+  Serial.println(F("\n=== D-O Universal Controller v3.4.3 ==="));
 
   // Load configuration
   loadConfiguration();
@@ -573,17 +588,12 @@ void setup() {
     }
   }
 
-  // Enable Watchdog Timer AFTER menu wait (2 second timeout)
-  // This prevents reset loop since menu wait is 3 seconds
-  if (config.watchdog_enabled) {
-    wdt_enable(WDTO_2S);
-    Serial.println(F("Watchdog enabled (2s timeout)"));
-  }
-
-  // Mode-specific initialization
+  // Mode-specific initialization (DFPlayer begin() can block ~1-2 s if the
+  // module is slow/absent — must NOT be watchdog-guarded, see below)
   initializeForMode();
 
-  // Wait for valid RC signal
+  // Wait for valid RC signal (can block up to 10 s if no signal — also must
+  // not be watchdog-guarded)
   waitForRCSignal();
 
   // Initialize timers (micros for PID, millis for other timing)
@@ -593,6 +603,13 @@ void setup() {
   last_rc_activity = millis();
   last_idle_action = millis();
   next_idle_interval = random(config.idle_interval_min, config.idle_interval_max);
+
+  // Enable the watchdog ONLY now — all blocking init is done, so from here on
+  // a >2 s stall means the main loop is genuinely hung and a reset is wanted.
+  if (config.watchdog_enabled) {
+    wdt_enable(WDTO_2S);
+    Serial.println(F("Watchdog enabled (2s timeout)"));
+  }
 
   system_ready = true;
   Serial.println(F("System ready! Press 'm' for menu, 'h' for help"));
@@ -609,7 +626,7 @@ void setup() {
 // ============================================================================
 
 void showHelp() {
-  Serial.println(F("\n=== CLI HELP (v3.4.2) ==="));
+  Serial.println(F("\n=== CLI HELP (v3.4.3) ==="));
   Serial.println(F("\nQuick Commands (available anytime):"));
   Serial.println(F("  m - Open configuration menu"));
   Serial.println(F("  h - Show this help (also: ?)"));
@@ -906,24 +923,26 @@ void sbusLoop() {
 }
 
 void sbusParseFrame() {
-  // Bit-unpack 16 × 11-bit channels from bytes 1..22 (little-endian)
+  // Bit-unpack 16 × 11-bit channels from bytes 1..22 (little-endian).
+  // Cast bytes that shift by >=8 to uint16_t: a uint8_t promotes to 16-bit int
+  // on AVR, so `byte << 8/9/10` would reach the sign bit = signed-overflow UB.
   uint16_t c[16];
-  c[0]  = ((sbus_buf[1]     | sbus_buf[2] <<8))                        & 0x07FF;
-  c[1]  = ((sbus_buf[2] >>3 | sbus_buf[3] <<5))                        & 0x07FF;
-  c[2]  = ((sbus_buf[3] >>6 | sbus_buf[4] <<2 | sbus_buf[5] <<10))     & 0x07FF;
-  c[3]  = ((sbus_buf[5] >>1 | sbus_buf[6] <<7))                        & 0x07FF;
-  c[4]  = ((sbus_buf[6] >>4 | sbus_buf[7] <<4))                        & 0x07FF;
-  c[5]  = ((sbus_buf[7] >>7 | sbus_buf[8] <<1 | sbus_buf[9] <<9))      & 0x07FF;
-  c[6]  = ((sbus_buf[9] >>2 | sbus_buf[10]<<6))                        & 0x07FF;
-  c[7]  = ((sbus_buf[10]>>5 | sbus_buf[11]<<3))                        & 0x07FF;
-  c[8]  = ((sbus_buf[12]    | sbus_buf[13]<<8))                        & 0x07FF;
-  c[9]  = ((sbus_buf[13]>>3 | sbus_buf[14]<<5))                        & 0x07FF;
-  c[10] = ((sbus_buf[14]>>6 | sbus_buf[15]<<2 | sbus_buf[16]<<10))     & 0x07FF;
-  c[11] = ((sbus_buf[16]>>1 | sbus_buf[17]<<7))                        & 0x07FF;
-  c[12] = ((sbus_buf[17]>>4 | sbus_buf[18]<<4))                        & 0x07FF;
-  c[13] = ((sbus_buf[18]>>7 | sbus_buf[19]<<1 | sbus_buf[20]<<9))      & 0x07FF;
-  c[14] = ((sbus_buf[20]>>2 | sbus_buf[21]<<6))                        & 0x07FF;
-  c[15] = ((sbus_buf[21]>>5 | sbus_buf[22]<<3))                        & 0x07FF;
+  c[0]  = ((sbus_buf[1]     | (uint16_t)sbus_buf[2] <<8))                          & 0x07FF;
+  c[1]  = ((sbus_buf[2] >>3 | sbus_buf[3] <<5))                                    & 0x07FF;
+  c[2]  = ((sbus_buf[3] >>6 | sbus_buf[4] <<2 | (uint16_t)sbus_buf[5] <<10))       & 0x07FF;
+  c[3]  = ((sbus_buf[5] >>1 | sbus_buf[6] <<7))                                    & 0x07FF;
+  c[4]  = ((sbus_buf[6] >>4 | sbus_buf[7] <<4))                                    & 0x07FF;
+  c[5]  = ((sbus_buf[7] >>7 | sbus_buf[8] <<1 | (uint16_t)sbus_buf[9] <<9))        & 0x07FF;
+  c[6]  = ((sbus_buf[9] >>2 | sbus_buf[10]<<6))                                    & 0x07FF;
+  c[7]  = ((sbus_buf[10]>>5 | sbus_buf[11]<<3))                                    & 0x07FF;
+  c[8]  = ((sbus_buf[12]    | (uint16_t)sbus_buf[13]<<8))                          & 0x07FF;
+  c[9]  = ((sbus_buf[13]>>3 | sbus_buf[14]<<5))                                    & 0x07FF;
+  c[10] = ((sbus_buf[14]>>6 | sbus_buf[15]<<2 | (uint16_t)sbus_buf[16]<<10))       & 0x07FF;
+  c[11] = ((sbus_buf[16]>>1 | sbus_buf[17]<<7))                                    & 0x07FF;
+  c[12] = ((sbus_buf[17]>>4 | sbus_buf[18]<<4))                                    & 0x07FF;
+  c[13] = ((sbus_buf[18]>>7 | sbus_buf[19]<<1 | (uint16_t)sbus_buf[20]<<9))        & 0x07FF;
+  c[14] = ((sbus_buf[20]>>2 | sbus_buf[21]<<6))                                    & 0x07FF;
+  c[15] = ((sbus_buf[21]>>5 | sbus_buf[22]<<3))                                    & 0x07FF;
 
   // Flags byte (24th byte, zero-indexed 23): bit 2 = frame-lost, bit 3 = failsafe
   uint8_t flags = sbus_buf[23];
@@ -1187,9 +1206,14 @@ void updateIMUReadings() {
   acc_y = (Wire.read() << 8 | Wire.read()) - config.accel_y_offset;
   acc_z = (Wire.read() << 8 | Wire.read()) - config.accel_z_offset;
 
-  // Use multiplication instead of pow() for much better performance
-  accel_angle[0] = atan(acc_y / sqrt(acc_x * acc_x + acc_z * acc_z)) * 180 / PI;
-  accel_angle[1] = atan(-1.0 * acc_x / sqrt(acc_y * acc_y + acc_z * acc_z)) * 180 / PI;
+  // Use multiplication instead of pow() for much better performance.
+  // IMPORTANT: cast to float BEFORE multiplying. acc_* are int16_t and on AVR
+  // `int` is 16-bit, so `acc_z * acc_z` (e.g. 16384*16384) overflows a 16-bit
+  // int and yields garbage (often 0 or negative) → sqrt() returns 0/NaN →
+  // accel_angle becomes NaN → total_angle/PID become NaN → motors get 0 and the
+  // droid never balances. (Regression vs v2.1, which had the (float) cast.)
+  accel_angle[0] = atan(acc_y / sqrt((float)acc_x * acc_x + (float)acc_z * acc_z)) * 180 / PI;
+  accel_angle[1] = atan(-1.0 * acc_x / sqrt((float)acc_y * acc_y + (float)acc_z * acc_z)) * 180 / PI;
 
   // Read gyroscope
   Wire.beginTransmission(imu_address);
@@ -1697,15 +1721,19 @@ void performRandomIdleAction() {
 }
 
 void performIdleServoMovement() {
-  // Random head movement
+  // NOTE: these blocking delays stop the balance loop for up to ~1.2 s, so idle
+  // animations only run when idle (no RC activity ≥3 s). wdt_reset() is pumped
+  // before every delay so the (≤500 ms) gaps can't trip the 2 s watchdog.
   int movement_type = random(0, 3);
 
   switch (movement_type) {
     case 0: // Nod
       for (int i = 0; i < 2; i++) {
         head1Servo.writeMicroseconds(1300);
+        if (config.watchdog_enabled) wdt_reset();
         delay(300);
         head1Servo.writeMicroseconds(1700);
+        if (config.watchdog_enabled) wdt_reset();
         delay(300);
       }
       head1Servo.writeMicroseconds(RC_CENTER);
@@ -1713,8 +1741,10 @@ void performIdleServoMovement() {
 
     case 1: // Look around
       head2Servo.writeMicroseconds(1200);
+      if (config.watchdog_enabled) wdt_reset();
       delay(500);
       head2Servo.writeMicroseconds(1800);
+      if (config.watchdog_enabled) wdt_reset();
       delay(500);
       head2Servo.writeMicroseconds(RC_CENTER);
       break;
@@ -1722,8 +1752,10 @@ void performIdleServoMovement() {
     case 2: // Small shake
       for (int i = 0; i < 3; i++) {
         head3Servo.writeMicroseconds(1400);
+        if (config.watchdog_enabled) wdt_reset();
         delay(150);
         head3Servo.writeMicroseconds(1600);
+        if (config.watchdog_enabled) wdt_reset();
         delay(150);
       }
       head3Servo.writeMicroseconds(RC_CENTER);
@@ -1801,11 +1833,13 @@ void handleSoundSystem() {
   uint16_t sw_mute, sw_mode, sw_mood, sw_squeak;
 
   if (config.setup_mode == 0) {
-    // Mode 0 (PWM Only) - read from PWM pins
-    sw_mute = pulseIn(PWM_SOUND_CH1_PIN, HIGH, 10000);
-    sw_mode = pulseIn(PWM_SOUND_CH2_PIN, HIGH, 10000);
-    sw_mood = pulseIn(PWM_SOUND_CH3_PIN, HIGH, 10000);
-    sw_squeak = pulseIn(PWM_SOUND_CH4_PIN, HIGH, 10000);
+    // Mode 0 (PWM Only) - read from PWM pins. 3 ms timeout: a valid RC pulse is
+    // <=2 ms and returns immediately; only an ABSENT channel waits the timeout,
+    // so worst-case blocking here is ~12 ms instead of 40 ms.
+    sw_mute = pulseIn(PWM_SOUND_CH1_PIN, HIGH, 3000);
+    sw_mode = pulseIn(PWM_SOUND_CH2_PIN, HIGH, 3000);
+    sw_mood = pulseIn(PWM_SOUND_CH3_PIN, HIGH, 3000);
+    sw_squeak = pulseIn(PWM_SOUND_CH4_PIN, HIGH, 3000);
 
     // Default to low if no signal
     if (sw_mute == 0) sw_mute = RC_MIN;
@@ -2350,6 +2384,7 @@ void imuTestMenu() {
         {
           unsigned long last_print = 0;
           while (!Serial.available()) {
+            if (config.watchdog_enabled) wdt_reset();  // defensive: don't let the live test trip the WDT
             updateIMUReadings();
             if (millis() - last_print > 200) {
               float displayed_angle = config.imu_invert ? -total_angle[0] : total_angle[0];
@@ -2426,6 +2461,7 @@ void rcTestMenu() {
 
   unsigned long last_print = 0;
   while (!Serial.available()) {
+    if (config.watchdog_enabled) wdt_reset();  // defensive: never let this loop trip the WDT
     // Pump the protocol parser every iteration so frames keep decoding
     if (config.setup_mode == 1) {
       rcProtocolLoop();
@@ -2629,5 +2665,5 @@ void saveChannelMap() {
 }
 
 // ============================================================================
-// End of D-O Universal Controller v3.4.2
+// End of D-O Universal Controller v3.4.3
 // ============================================================================
