@@ -1,13 +1,8 @@
-# D-O Controller Family (Printed-Droid.com)
+# D-O Control & Power Board (Printed-Droid.com)
 
-Control & power electronics for the self-balancing **D-O droid** from *Star Wars: The Rise of Skywalker*. This repository hosts **two parallel controller product lines**, both driving the same physical droid (same chassis, motors, servos, sound files, transmitter mapping) — pick whichever suits your build:
+Control & power electronics for the self-balancing **D-O droid** from *Star Wars: The Rise of Skywalker*. An **Arduino Mega 2560 + Cytron MDD10A** control system for the **V1.6** (Standard Control PCB) and **V1.7** (Mini iBus) boards — same chassis, motors, servos, sound files and transmitter mapping across both board revisions.
 
-| Line | Controller | Board revisions | Current firmware |
-|------|-----------|-----------------|------------------|
-| **AIO Mega** | Arduino Mega 2560 + Cytron MDD10A | V1.6 Standard PCB, V1.7 Mini iBus | [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) — v3.4.3 |
-| **AIO32 v2** | ESP32-S3 (TENSTAR module) + Cytron MDD10A | AIO32 v2 | [`D-O_AIO32_v2.1/`](D-O_AIO32_v2.1/) — v2.1.1 |
-
-Both controllers share the **FlySky iBus / Futaba SBUS channel map, the DFPlayer SD-card layout, and the 4S LiPo supply** — you can swap boards in a finished droid and reuse your transmitter, sound files and mechanics without reconfiguration.
+**Current sketch:** [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) — v3.4.3.
 
 ---
 
@@ -18,16 +13,15 @@ Both controllers share the **FlySky iBus / Futaba SBUS channel map, the DFPlayer
 | New build, Mega + V1.6 / V1.7 PCB, FlySky iBus receiver | [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) **Mode 1 / iBus** — current v3.4.3 |
 | New build, Mega + V1.6 / V1.7 PCB, FrSky / Futaba SBUS receiver | [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) **Mode 1 / SBUS** — needs external inverter |
 | New build, Mega + V1.6 PCB, classic PWM receiver (no iBus) | [`D-O_ibus_v3.4/`](D-O_ibus_v3.4/) **Mode 0** |
-| New build on the **AIO32 v2** board (ESP32-S3) | [`D-O_AIO32_v2.1/`](D-O_AIO32_v2.1/) — v2.1.1, runtime iBus/SBUS switch, no inverter |
 | Existing V1.6 install with **external Nano** wired to the DFPlayer | [`D-O_ibus_v2.1/`](D-O_ibus_v2.1/) + [`D_O_Nano_Sketch_v2/`](D_O_Nano_Sketch_v2/) — Mode 0 |
 | Pre-2020 retro build, minimalist, PWM only | [`D-Ov2_Mega2560_sketch/`](D-Ov2_Mega2560_sketch/) — archive reference |
 | First-gen iBus version from 2020 | [`D-O_ibus_v1.1/`](D-O_ibus_v1.1/) — archive reference |
 
-**When in doubt, pick `D-O_ibus_v3.4` for a Mega droid, `D-O_AIO32_v2.1` for an AIO32 droid.** Legacy and archive sketches are kept in the repo so existing builds stay supported; they are not the target for new projects.
+**When in doubt, pick `D-O_ibus_v3.4`.** Legacy and archive sketches are kept in the repo so existing builds stay supported; they are not the target for new projects.
 
 ---
 
-## Mega AIO line
+## System overview
 
 Arduino-based control and power system. Two active board generations: **V1.6** (Standard Control PCB, PWM + optional Nano for sound) and **V1.7** (Mini iBus Board, iBus-only, sound integrated on the Mega).
 
@@ -78,23 +72,6 @@ Sound switches on the Nano (legacy V1.6 only):
 
 ---
 
-## AIO32 v2 line
-
-ESP32-S3-based controller on the AIO32 v2 board. Uses the same Cytron MDD10A motor driver, same DFPlayer Mini, same 4S LiPo, and the same FlySky/SBUS channel map as the Mega line — but adds onboard hardware:
-
-- **ESP32-S3** on TENSTAR TS-ESP32-S3 module (4 MB flash, native USB-C)
-- **1.14" ST7789 colour TFT** — live telemetry + diagnostic pages, rotation cycle
-- **Dual IMU with Madgwick AHRS fusion** — QMI8658C on module + LSM6DS3TR-C on PCB
-- **WS2812 NeoPixel status LED** with state-based colour patterns
-- **6 labelled buttons (B1..B6)** for Start/Stop, Calibrate, Display, Debug/Select, Mode, Back/Emergency
-- **Full interactive CLI** on USB-serial at 115200 baud (~80 commands, all parameters runtime-tuneable, NVS-persisted)
-- **Runtime iBus ↔ SBUS switch via CLI** — **no external inverter needed** (ESP32 UART HW-invert)
-- **Auto-baseline target angle** (long-press B1): 2-second pitch average locks in the neutral
-
-**Current sketch:** [`D-O_AIO32_v2.1/`](D-O_AIO32_v2.1/) — v2.1.1 (April 2026: SBUS via CLI, Madgwick beta tuning, filename-based DFPlayer).
-
----
-
 ## Sketch inventory
 
 All sketches in this repository. Individual sketch folders contain their own README with build-specific details.
@@ -102,7 +79,6 @@ All sketches in this repository. Individual sketch folders contain their own REA
 | Sketch | Platform | Role | Status | Target user |
 |--------|----------|------|--------|-------------|
 | [**`D-O_ibus_v3.4`**](D-O_ibus_v3.4/) (v3.4.3) | Arduino Mega 2560 | Universal Mega controller | **Current, recommended** | Any new build on V1.6 / V1.7 |
-| [**`D-O_AIO32_v2.1`**](D-O_AIO32_v2.1/) (v2.1.1) | ESP32-S3 (TENSTAR) | AIO32 v2 board firmware | **Current, recommended** | Any build on the AIO32 v2 controller |
 | [`D-O_ibus_v2.1`](D-O_ibus_v2.1/) | Arduino Mega 2560 | Legacy controller with external Nano sound | Maintenance | Existing V1.6 installs with a wired-up Nano |
 | [`D-O_ibus_v1.1`](D-O_ibus_v1.1/) | Arduino Mega 2560 | Original iBus version (2020-11) | Archive | Historical reference |
 | [`D-Ov2_Mega2560_sketch`](D-Ov2_Mega2560_sketch/) | Arduino Mega 2560 | Original PWM version (2020) | Archive | Historical reference |
@@ -110,7 +86,7 @@ All sketches in this repository. Individual sketch folders contain their own REA
 
 ### `D-O_ibus_v3.4` — universal Mega controller (current)
 
-- **Base:** Rewrite of v2.1 (December 2025), consolidated and bug-fixed in April 2026. v3.4.1 (April 2026) adds AIO32 cross-port features behind compile flags + SBUS menu option.
+- **Base:** Rewrite of v2.1 (December 2025), consolidated and bug-fixed in April 2026. v3.4.1 (April 2026) added optional Madgwick AHRS and class-style PID behind compile flags, plus the SBUS menu option.
 - **Setup modes:** `0 = PWM Only`, `1 = Serial RC (iBus or SBUS — chosen via menu option r)`. No Hybrid mode.
 - **Sound:** DFPlayer always driven by the Mega (D7 / D8). No external Nano required. v3.4.1 uses filename-based addressing — SD-card copy order no longer matters.
 - **Features (v3.4.3):** RC shaping with deadband + expo curve (input clamped against overshoot), motor ramping, arcade / tank mixing, idle animations with signal gating, battery monitoring, watchdog (hardened against reset loops), IMU clone support, SBUS support (via external inverter), optional Madgwick AHRS, optional class-style PID with anti-windup, runtime Madgwick beta tuning, configurable channel mapping, EEPROM magic `0xD044`.
@@ -118,15 +94,6 @@ All sketches in this repository. Individual sketch folders contain their own REA
 - **Configurable channel mapping (menu `p`):** assign any transmitter channel to any function (drive, mainbar, head, sounds). Useful on transmitters like the FlySky FS-i6X where CH1–CH4 are fixed gimbals and only CH5–CH10 are freely assignable. Stored in a separate EEPROM block, so remapping never resets your other settings.
 - **Pinout:** identical to v2.1 / v1.1 (PCB compatibility preserved).
 - **Details:** [`D-O_ibus_v3.4/README.md`](D-O_ibus_v3.4/README.md)
-
-### `D-O_AIO32_v2.1` — AIO32 v2 firmware (current)
-
-- **Platform:** ESP32-S3 on TENSTAR TS-ESP32-S3 module (4 MB flash, native USB-C).
-- **Hardware extras vs Mega line:** onboard 1.14" ST7789 colour TFT, dual IMU with Madgwick fusion (QMI8658C + LSM6DS3TR-C), WS2812 status LED with state-based patterns, 6 on-board buttons (B1..B6).
-- **RC protocols:** FlySky iBus (default) **and** Futaba/FrSky SBUS — both **runtime-switchable via CLI** with NVS persistence. No external inverter needed for SBUS (ESP32 UART hardware invert).
-- **Sound:** Cytron MDD10A motor driver, DFPlayer Mini + Makuna DFMiniMp3 library with filename-based `playMp3FolderTrack()` — SD-card copy order doesn't matter.
-- **CLI:** full interactive CLI at 115200 baud (`help`, `pid kp …`, `imu mode …`, `rc protocol sbus`, `debug stream …`, etc.), ~80 commands, every parameter runtime-tuneable and NVS-persisted.
-- **Details:** [`D-O_AIO32_v2.1/README.md`](D-O_AIO32_v2.1/README.md)
 
 ### `D-O_ibus_v2.1` — legacy Mega with optional Nano
 
@@ -164,15 +131,10 @@ All sketches in this repository. Individual sketch folders contain their own REA
 
 ## Manuals
 
-Full user handbooks (EN / DE) as PDF, in this folder:
+Full user handbook (EN / DE) as PDF, in this folder:
 
-**Mega AIO line:**
 - [D-O_Control_&_Power_Board_System_Documentation_v2.2.pdf](D-O_Control_&_Power_Board_System_Documentation_v2.2.pdf) — user handbook (EN)
 - [D-O_Control_&_Power_Board_System_Documentation_v2.2_DE.pdf](D-O_Control_&_Power_Board_System_Documentation_v2.2_DE.pdf) — Nutzerhandbuch (DE)
-
-**AIO32 v2 line:**
-- [D-O_AIO32_v2_User_Handbook_v2.1.1.pdf](D-O_AIO32_v2_User_Handbook_v2.1.1.pdf) — user handbook (EN)
-- [D-O_AIO32_v2_User_Handbook_v2.1.1_DE.pdf](D-O_AIO32_v2_User_Handbook_v2.1.1_DE.pdf) — Nutzerhandbuch (DE)
 
 ---
 
