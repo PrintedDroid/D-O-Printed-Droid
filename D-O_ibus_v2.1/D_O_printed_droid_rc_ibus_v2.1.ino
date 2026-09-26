@@ -129,7 +129,7 @@ struct Configuration {
   
   // Setup Type Configuration
   uint8_t setup_type = 2;  // 0=PWM, 1=Hybrid, 2=iBus (default)
-  uint32_t ibus_baudrate = 9600;  // iBus baudrate (9600 or 115200)
+  uint32_t ibus_baudrate = 115200;  // iBus baudrate — FlySky standard (8N1). 9600 only for non-standard receivers.
 
   // PID Configuration
   float kp = 25.0;
