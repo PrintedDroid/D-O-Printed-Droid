@@ -127,7 +127,7 @@ void setup()
 #endif
 
 #ifdef IBUS_ENABLED
-  Serial1.begin(9600); //RX1 pin 19
+  Serial1.begin(115200); //RX1 pin 19 — FlySky iBus standard baudrate (8N1)
   IBus.begin(Serial1, IBUSBM_NOTIMER);
 #endif  
 
